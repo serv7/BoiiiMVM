@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals"><ProjectGuid>{BA960C17-8A62-4757-B32C-29410E2DD7C9}</ProjectGuid><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration"><ConfigurationType>DynamicLibrary</ConfigurationType><PlatformToolset>v145</PlatformToolset><UseDebugLibraries>false</UseDebugLibraries></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup><OutDir>$(ProjectDir)build\</OutDir><IntDir>$(ProjectDir)build\obj\</IntDir><TargetName>bo3_theater</TargetName></PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile><LanguageStandard>stdcpp20</LanguageStandard><RuntimeLibrary>MultiThreaded</RuntimeLibrary><Optimization>MaxSpeed</Optimization><WarningLevel>Level3</WarningLevel><ExceptionHandling>Sync</ExceptionHandling><PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions><AdditionalIncludeDirectories>$(ProjectDir)reMVM-t7\reMVM\helpers;$(ProjectDir)reMVM-t7\reMVM\helpers\ImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <Link><AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;user32.lib;%(AdditionalDependencies)</AdditionalDependencies><GenerateDebugInformation>true</GenerateDebugInformation></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\plugin.cpp" />
+    <ClCompile Include="src\binds.cpp" />
+    <ClCompile Include="src\capture.cpp" />
+    <ClCompile Include="src\reshade_capture.cpp" />
+    <ClCompile Include="src\backend.cpp" />
+    <ClCompile Include="src\native_calls.cpp" />
+    <ClCompile Include="src\diagnostics.cpp" />
+    <ClCompile Include="src\ui.cpp" />
+    <ClCompile Include="src\editor.cpp" />
+    <ClCompile Include="src\editor_files.cpp" />
+    <ClCompile Include="src\editor_ui.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\kiero\kiero.cpp" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\MH\buffer.c" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\MH\hde64.c" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\MH\hook.c" />
+    <ClCompile Include="reMVM-t7\reMVM\helpers\MH\trampoline.c" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

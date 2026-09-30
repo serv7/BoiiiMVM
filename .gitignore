@@ -1,0 +1,15 @@
+/build/
+/.analysis-libs/
+/docs/live.*.bin
+/docs/live-module.json
+/references/
+/backups/
+*.user
+/docs/*.dmp
+/dist/
+/MVM/
+/assets/ffmpeg/
+/docs/VALIDATION.md
+/docs/f3-diagnostic-trace.txt
+/docs/live-proxy.bin
+/tools/package_release.py

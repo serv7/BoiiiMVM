@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations"><ProjectConfiguration Include="Release|x64"><Configuration>Release</Configuration><Platform>x64</Platform></ProjectConfiguration></ItemGroup>
+  <PropertyGroup Label="Globals"><WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration"><ConfigurationType>Application</ConfigurationType><PlatformToolset>v145</PlatformToolset><UseDebugLibraries>false</UseDebugLibraries></PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup><OutDir>$(ProjectDir)..\build\tests\</OutDir><IntDir>$(OutDir)preview-obj\</IntDir><TargetName>ui_preview</TargetName></PropertyGroup>
+  <ItemDefinitionGroup><ClCompile><LanguageStandard>stdcpp20</LanguageStandard><RuntimeLibrary>MultiThreaded</RuntimeLibrary><WarningLevel>Level3</WarningLevel><ExceptionHandling>Sync</ExceptionHandling><PreprocessorDefinitions>WIN32_LEAN_AND_MEAN;NOMINMAX;_CRT_SECURE_NO_WARNINGS;IMGUI_ENABLE_TEST_ENGINE</PreprocessorDefinitions><AdditionalIncludeDirectories>$(ProjectDir)..\reMVM-t7\reMVM\helpers\ImGui</AdditionalIncludeDirectories></ClCompile><Link><SubSystem>Console</SubSystem><AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies></Link></ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ui_preview.cpp" /><ClCompile Include="..\src\ui.cpp" />
+    <ClCompile Include="..\src\binds.cpp" />
+    <ClCompile Include="..\src\editor_ui.cpp" />
+    <ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui.cpp" /><ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_tables.cpp" /><ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_impl_dx11.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>
