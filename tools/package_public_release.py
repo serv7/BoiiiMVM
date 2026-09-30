@@ -13,7 +13,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = "0.8.1"
-NAME = f"BO3-Theater-and-Bot-Toolkit-v{VERSION}.zip"
+NAME = f"BoiiiMVM-v{VERSION}.zip"
 DATA_DIRS = ("gamesettings", "launcher", "lookup_tables", "scripts", "ui_scripts")
 
 
@@ -68,8 +68,7 @@ def main() -> None:
         add(entries, "MVM/Theater/fog-presets/" + file.name, file)
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    base = "https://github.com/serv7/bo3-theater-bot-toolkit"
-    readme = readme.replace("(../../releases/latest)", f"({base}/releases/latest)")
+    base = "https://github.com/serv7/BoiiiMVM"
     readme = readme.replace("(docs/", f"({base}/blob/main/docs/")
     readme = readme.replace(f"({base}/blob/main/docs/images/",
                             f"({base}/raw/refs/heads/main/docs/images/")

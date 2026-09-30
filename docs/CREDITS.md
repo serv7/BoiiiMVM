@@ -7,4 +7,4 @@
 - The runtime package bundles an FFmpeg shared build for encoding. Its adjacent `MVM/Theater/LICENSE.txt` contains the LGPL notice; [FFmpeg source](https://github.com/FFmpeg/FFmpeg) and [Windows build provider](https://github.com/BtbN/FFmpeg-Builds) are linked for attribution. ReShade binaries are not bundled.
 - Screenshots were supplied by the project owner and document their own BO3 gameplay and editor scenes.
 
-The theater plugin code and the bundled bot GSC scripts are provided in the separate source archive. No BO3 game executable or game data are part of this release.
+The theater plugin code and the bundled bot GSC scripts are provided in this repository and GitHub's generated source downloads. No BO3 game executable or game data are part of this release.

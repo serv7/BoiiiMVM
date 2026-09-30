@@ -1,4 +1,4 @@
-# BO3 Theater & Bot Toolkit
+# BoiiiMVM
 
 Keyboard-first cinematic tools and a bot setup for **Call of Duty: Black Ops III** on Windows. The package combines the BOIII bot mod with a theater overlay for building camera paths, changing the scene, and recording video directly from the game.
 
@@ -8,7 +8,7 @@ BO3's native theater interface was designed around controller-style navigation. 
 
 ## Download and install
 
-Download **`BO3-Theater-and-Bot-Toolkit-v0.8.1.zip`** from [Releases](../../releases/latest). The release also provides a separate source ZIP. You need your own installed copy of BO3; the game itself is not included.
+Download **`BoiiiMVM-v0.8.1.zip`** from [Releases](https://github.com/serv7/BoiiiMVM/releases/latest). GitHub provides the repository source code beneath the release assets. You need your own installed copy of BO3; the game itself is not included.
 
 1. Close BOIII and back up your current `boiii.exe`, `boiii` folder, and `%LOCALAPPDATA%\boiii\data` if they exist.
 2. Open the ZIP. Copy `boiii.exe`, `boiii`, and `MVM` into the folder containing your own `BlackOps3.exe`. Merge folders and replace the supplied client/plugin files.
@@ -76,6 +76,6 @@ More examples: [aiming shot](docs/images/aiming-cinematic.png) and [bot close-up
 - [Ezz-lol/boiii-free](https://github.com/Ezz-lol/boiii-free) is the upstream BOIII client. This project includes a customized executable and does not include BO3 game files.
 - The theater plugin uses ImGui, MinHook and kiero sources from the user-supplied reMVM-t7 tree, plus the ReShade add-on API and FFmpeg. See [credits and licenses](docs/CREDITS.md).
 
-The repository contains the theater plugin and bot GSC source. The release's separate source ZIP contains those files and build dependencies. The original @luslex bot-menu executable was supplied as a binary, and its menu source was not supplied; the upstream BOIII source is linked above. See [building from source](docs/BUILD.md) for the scope of the available source.
+The repository contains the theater plugin and bot GSC source, along with their build dependencies. Download it using GitHub's “Source code” links on the release. The original @luslex bot-menu executable was supplied as a binary, and its menu source was not supplied; the upstream BOIII source is linked above. See [building from source](docs/BUILD.md) for the scope of the available source.
 
 This project is intended for private custom games and cinematic work. It has been tested with the BO3 executable identified in the release README; other builds may not match the plugin's native-function checks.

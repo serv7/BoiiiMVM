@@ -4,7 +4,7 @@
 
 You need Windows 10/11 x64 and your own installed copy of Call of Duty: Black Ops III. This download does not include the game. It includes a customized BOIII client, the bot scripts, the theater plugin, BOIII runtime data, and FFmpeg for video recording. ReShade is optional and is not bundled.
 
-1. Download `BO3-Theater-and-Bot-Toolkit-v0.8.1.zip` from the repository's Releases page. Extract it to a temporary folder. You should see exactly `boiii`, `MVM`, `boiii.exe`, and `README.md`.
+1. Download `BoiiiMVM-v0.8.1.zip` from the repository's Releases page. Extract it to a temporary folder. You should see exactly `boiii`, `MVM`, `boiii.exe`, and `README.md`.
 2. Close the game and BOIII. Back up the `boiii.exe` and `boiii` folder already in the same folder as your `BlackOps3.exe`. Also back up `%LOCALAPPDATA%\boiii\data` if present. Preserve your personal configs, recordings, and film files.
 3. Copy the extracted `boiii.exe`, `boiii` folder, and `MVM` folder into the folder containing `BlackOps3.exe`. Merge folders and replace the supplied files. Do not copy the enclosing ZIP folder.
 4. Open `%LOCALAPPDATA%\boiii` using Win+R. Copy `boiii\data` from the extracted ZIP into that location so the result is `%LOCALAPPDATA%\boiii\data`. Merge with the backup as needed. BOIII reads these runtime UI assets from AppData.
