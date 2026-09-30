@@ -2,7 +2,7 @@
 
 [![Watch the 40-second installation video](docs/video/install-cover.jpg)](docs/video/how-to-install.mp4)
 
-**[Watch the 40-second installation video](docs/video/how-to-install.mp4). Launch `boiii.exe`, not `BlackOps3.exe`. If the “BOIII Patch Installer” prompt appears, press Cancel.** The theater UI needs the supported `BlackOps3.exe` build; the bot menu can work even when the theater plugin rejects a different game build. See the [compatibility check](docs/INSTALL.md#theater-ui-still-shows-the-original-controls).
+**[Watch the 40-second installation video](docs/video/how-to-install.mp4). Launch `boiii.exe`, not `BlackOps3.exe`. If the “BOIII Patch Installer” prompt appears, press Cancel.**
 
 Keyboard-first cinematic tools and a bot setup for **Call of Duty: Black Ops III** on Windows. The package combines the BOIII bot mod with a theater overlay for building camera paths, changing the scene, and recording video directly from the game.
 
@@ -12,16 +12,14 @@ BO3's native theater interface was designed around controller-style navigation. 
 
 ## Download and install
 
-Download **`BoiiiMVM-v0.8.1.zip`** from [Releases](https://github.com/serv7/BoiiiMVM/releases/latest). GitHub provides the repository source code beneath the release assets. You need your own installed copy of BO3; the game itself is not included.
+Download **`BoiiiMVM-v0.8.1.zip`** from [Releases](https://github.com/serv7/BoiiiMVM/releases/latest). GitHub provides the repository source code beneath the release assets. You need an installed copy of BO3; this ZIP contains the toolkit files.
 
 1. Close BOIII and back up your current `boiii.exe`, `boiii` folder, and `%LOCALAPPDATA%\boiii\data` if they exist.
 2. Open the ZIP. Copy `boiii.exe`, `boiii`, and `MVM` into the folder containing your own `BlackOps3.exe`. Merge folders and replace the supplied client/plugin files.
 3. Copy the ZIP's `boiii\data` folder to `%LOCALAPPDATA%\boiii\data`, merging it with any existing runtime data. The copy left under the game folder is harmless; the client reads the AppData copy.
 4. **Launch the bundled `boiii.exe`, not `BlackOps3.exe`**, from your BO3 folder with `-noupdate` so this compatible build stays in place. If BOIII offers to download a different `BlackOps3.exe`, **press Cancel**. Start a private custom game to use the bot mod. To use the cinematic tools, open a saved multiplayer theater film through BOIII.
 
-The runtime ZIP has only four items at its top level: `boiii/`, `MVM/`, `boiii.exe`, and `README.md`. Read [the detailed install and troubleshooting guide](docs/INSTALL.md) before replacing an existing BOIII setup.
-
-The theater plugin checks functions in `BlackOps3.exe` and leaves the original theater controls active if they do not match. The tested executable has SHA-256 `66B95EB4667BD5B3B3D230E7BED1D29CCD261D48CA2699F01216C863BE24FF44`. Pressing Cancel at BOIII's prompt does not make a different executable compatible; compare the hash and logs if the bot mod works but the theater UI does not.
+The runtime ZIP has only four items at its top level: `boiii/`, `MVM/`, `boiii.exe`, and `README.md`. Read [the detailed installation guide](docs/INSTALL.md) before replacing an existing BOIII setup.
 
 ## Quick start
 
@@ -84,4 +82,4 @@ More examples: [aiming shot](docs/images/aiming-cinematic.png) and [bot close-up
 
 The repository contains the theater plugin and bot GSC source, along with their build dependencies. Download it using GitHub's “Source code” links on the release. The original @luslex bot-menu executable was supplied as a binary, and its menu source was not supplied; the upstream BOIII source is linked above. See [building from source](docs/BUILD.md) for the scope of the available source.
 
-This project is intended for private custom games and cinematic work. It has been tested with the BO3 executable identified in the release README; other builds may not match the plugin's native-function checks.
+This project is intended for private custom games and cinematic work.
