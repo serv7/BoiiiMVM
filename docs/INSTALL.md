@@ -1,8 +1,8 @@
 # Installation and first run
 
-[![Watch the 40-second installation video](video/install-cover.jpg)](video/how-to-install.mp4)
+[![Watch the 40-second installation video](video/install-cover.jpg)](https://serv7.github.io/BoiiiMVM/)
 
-**[Watch the installation video](video/how-to-install.mp4)** before copying files. The crucial launch steps are to run the supplied **`boiii.exe`, not `BlackOps3.exe`**, and press **Cancel** if the BOIII Patch Installer offers to download a different game executable.
+**[Watch the installation video](https://serv7.github.io/BoiiiMVM/)** before copying files. The crucial launch steps are to run the supplied **`boiii.exe`, not `BlackOps3.exe`**, and press **Cancel** if the BOIII Patch Installer offers to download a different game executable.
 
 ## Requirements
 

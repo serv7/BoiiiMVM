@@ -1,8 +1,8 @@
 # BoiiiMVM
 
-[![Watch the 40-second installation video](docs/video/install-cover.jpg)](docs/video/how-to-install.mp4)
+[![Watch the 40-second installation video](docs/video/install-cover.jpg)](https://serv7.github.io/BoiiiMVM/)
 
-**[Watch the 40-second installation video](docs/video/how-to-install.mp4). Launch `boiii.exe`, not `BlackOps3.exe`. If the “BOIII Patch Installer” prompt appears, press Cancel.**
+**[Watch the 40-second installation video](https://serv7.github.io/BoiiiMVM/). Launch `boiii.exe`, not `BlackOps3.exe`. If the “BOIII Patch Installer” prompt appears, press Cancel.**
 
 Keyboard-first cinematic tools and a bot setup for **Call of Duty: Black Ops III** on Windows. The package combines the BOIII bot mod with a theater overlay for building camera paths, changing the scene, and recording video directly from the game.
 
