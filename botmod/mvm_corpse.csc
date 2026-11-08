@@ -14,6 +14,11 @@ function autoexec mvm_corpse_init()
 
 function main()
 {
+    // Films only. In live matches this helper's shutdown callbacks and manager
+    // thread broke the end-of-match demo summary upload, so recent games stayed
+    // empty. Do nothing here unless a film is playing.
+    if (!IsDemoPlaying())
+        return;
     if (IsDefined(level.mvm_corpse_started))
         return;
     SetDvar("mvm_corpse_stage", "initializing");
