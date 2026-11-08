@@ -21,6 +21,7 @@ FIXTURE = r'''
 inGame = true; demo = false; mode = 1; allowTeams = 1; killcam = false
 safe = {safeArea_horizontal = 1, safeArea_vertical = 1}
 settingsWrites = 0; nativeConstructors = 0; chosenTeams = 0
+host = false; responses = {}; wentBack = 0; visibleRows = 8
 Enum = {eModes = {MODE_MULTIPLAYER=1, MODE_ZOMBIES=2, MODE_CAMPAIGN=3},
         LobbyType={LOBBY_TYPE_GAME=1}, UIVisibilityBit={BIT_ROUND_END_KILLCAM=1, BIT_FINAL_KILLCAM=2}}
 Engine = {
@@ -29,7 +30,9 @@ Engine = {
   CurrentSessionMode=function() return mode end,
   GetGametypeSetting=function(name) if name=='allowInGameTeamChange' then return allowTeams end; return 0 end,
   IsVisibilityBitSet=function() return killcam end,
-  Team=function() return 'TEAM_ALLIES' end, IsLobbyHost=function() return false end,
+  Team=function() return 'TEAM_ALLIES' end, IsLobbyHost=function() return host end,
+  DvarBool=function() return false end,
+  SendMenuResponse=function(controller,menu,response) table.insert(responses,menu..':'..response) end,
   GetLobbyUIScreen=function() return 0 end,
   Exec=function() error('The addon must not issue gameplay commands') end,
 }
@@ -37,6 +40,18 @@ LobbyData={UITargetFromId=function() return {maxClients=18} end}
 CoD = {IsTeamChangeAllowed=function() return false end}
 ChooseTeam=function() chosenTeams=chosenTeams+1 end
 ChooseClass=function() end; QuitGame_MP=function() end; OpenPCQuit=function() end
+RestartGame=function() end; OpenPopup=function() end
+StartMenuGoBack_ListElement=function() wentBack=wentBack+1 end
+-- Film-menu helpers used by BOIII's party generator.
+IsDemoRestrictedBasicMode=function() return false end
+StartMenuUploadClip=function() end; StartMenuJumpToStart=function() end; StartMenuEndDemo=function() end
+Engine.IsDemoHighlightReelMode=function() return false end; Engine.IsDemoClipPlaying=function() return false end
+Engine.ToUpper=function(text) return text end; Engine.Localize=function(text) return text end
+Engine.GetDemoSegmentCount=function() return 0 end
+-- Campaign-menu helpers used by BOIII's party generator.
+Engine.GetModelForController=function() return {} end; Engine.GetPrimaryController=function() return 0 end
+CoD.SafeGetModelValue=function() return 0 end
+RestartMission=function() end; OpenDifficultySelect=function() end; SaveAndQuitGame=function() end; QuitGame=function() end
 function ListHelper_SetupDataSource(name, build)
   return {prepare=function(controller,list,filter) return build(controller),'prepared',filter end}
 end
@@ -50,7 +65,7 @@ end)}
 function newWidget(menu,controller)
   nativeConstructors=nativeConstructors+1
   local rows=DataSources.StartMenuGameOptions.prepare(controller,{},'filter-token')
-  return {rows=rows,buttonList={setTopBottom=function() end,setVerticalCount=function() end}},'widget-token'
+  return {rows=rows,buttonList={setTopBottom=function() end,setVerticalCount=function(self,n) visibleRows=n end}},'widget-token'
 end
 CoD.StartMenu_GameOptions={new=newWidget}
 LUI={roots={},createMenu={StartMenu=function(...)
@@ -58,6 +73,13 @@ LUI={roots={},createMenu={StartMenu=function(...)
   return instance,'menu-token'
 end}}
 function require() end
+function rowText(rows,text)
+  for _,row in ipairs(rows) do if row.models.displayText==text then return row end end
+end
+function currentMenuRows()
+  local menu=LUI.createMenu.StartMenu({},0)
+  return menu.rows
+end
 function hasTeam(rows)
   for _,row in ipairs(rows) do if row.models.displayText=='MPUI_CHANGE_TEAM_BUTTON_CAPS' then return true end end
   return false
@@ -145,6 +167,49 @@ class ClientUiChecks(unittest.TestCase):
         self.install()
         self.assertAlmostEqual(self.g.safe.safeArea_horizontal, .88)
         self.assertAlmostEqual(self.g.safe.safeArea_vertical, .88)
+
+    def test_end_game_for_live_match_host_ends_the_round(self):
+        self.g.host = True
+        self.install()
+        rows = self.g.currentMenuRows()
+        row = self.g.rowText(rows, "END GAME")
+        self.assertIsNotNone(row)
+        for text in ("RESTART GAME", "MAIN MENU", "QUIT TO DESKTOP", "GAME TWEAKS", "KICK PLAYER"):
+            self.assertIsNotNone(self.g.rowText(rows, text), text)
+        self.assertEqual(self.g.visibleRows, 9)
+        self.lua.execute("rowText(currentMenuRows(),'END GAME').models.action({},{},0,nil,{})")
+        self.assertEqual(list(self.g.responses.values()), ["popup_leavegame:endround"])
+        self.assertEqual(self.g.wentBack, 1)
+
+    def test_end_game_keeps_team_change_rule(self):
+        self.g.host = True
+        self.install()
+        self.assertTrue(self.g.hasTeam(self.g.currentMenuRows()))
+        self.g.allowTeams = 0
+        self.assertFalse(self.g.hasTeam(self.g.currentMenuRows()))
+
+    def test_no_end_game_for_guests_films_or_other_modes(self):
+        for host, mode, demo in ((False, 1, False), (True, 1, True), (True, 2, False), (True, 3, False)):
+            self.setUp()
+            self.g.host, self.g.mode, self.g.demo = host, mode, demo
+            self.install()
+            self.assertIsNone(self.g.rowText(self.g.currentMenuRows(), "END GAME"), (host, mode, demo))
+            self.assertNotEqual(self.g.visibleRows, 9)
+
+    def test_host_list_switches_back_when_no_longer_host(self):
+        self.g.host = True
+        self.install()
+        self.assertIsNotNone(self.g.rowText(self.g.currentMenuRows(), "END GAME"))
+        self.g.host = False
+        self.assertIsNone(self.g.rowText(self.g.currentMenuRows(), "END GAME"))
+
+    def test_repeated_loading_keeps_one_end_game_row(self):
+        self.g.host = True
+        for _ in range(4):
+            self.install()
+        rows = self.g.currentMenuRows()
+        self.assertEqual(sum(1 for row in rows.values() if row.models.displayText == "END GAME"), 1)
+        self.assertEqual(self.g.nativeConstructors, 1)
 
 
 if __name__ == "__main__":

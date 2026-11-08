@@ -89,8 +89,7 @@ function capture_corpse(localClientNum)
     entry = level.mvm_corpse_entries[id];
     if (!IsDefined(entry.corpse) || entry.corpse != corpse)
     {
-        if (IsDefined(entry.model))
-            entry.model Delete();
+        detach_weapon(entry);
         if (IsDefined(entry.serial))
             restore_corpse_drops(entry.serial);
         cleanup_released_weapon(entry);
@@ -121,7 +120,7 @@ function hide_recorded_item(localClientNum)
     {
         if (!IsDefined(entry.corpse) || !IsDefined(entry.weapon))
             continue;
-        if (!IsDefined(entry.model) && !entry.released)
+        if (!IsDefined(entry.attached) && !entry.released)
             continue;
         if (self.weapon != entry.weapon)
         {
@@ -158,7 +157,7 @@ function refresh_recorded_drops()
     has_override = false;
     foreach (entry in level.mvm_corpse_entries)
     {
-        if (IsDefined(entry.corpse) && (IsDefined(entry.model) || entry.released))
+        if (IsDefined(entry.corpse) && (IsDefined(entry.attached) || entry.released))
         {
             has_override = true;
             break;
@@ -207,14 +206,34 @@ function cleanup_released_weapon(entry)
     entry.dropped = undefined;
 }
 
-function delete_with_corpse(corpse, serial, model, entry)
+// The held weapon is attached to the body's own model, like stock gib and
+// character code does. A separate linked script_model collided with the
+// ragdoll when it reached the floor and threw the body across the map.
+function attach_weapon(entry)
+{
+    model = entry.weapon.worldModel;
+    if (!(entry.corpse IsAttached(model, "tag_weapon_right")))
+        entry.corpse Attach(model, "tag_weapon_right");
+    entry.attached = model;
+}
+
+function detach_weapon(entry)
+{
+    if (IsDefined(entry.attached) && IsDefined(entry.corpse) && entry.corpse IsAttached(entry.attached, "tag_weapon_right"))
+        entry.corpse Detach(entry.attached, "tag_weapon_right");
+    entry.attached = undefined;
+}
+
+function delete_with_corpse(corpse, serial, entry)
 {
     corpse waittill("entityshutdown");
     restore_corpse_drops(serial);
-    if (IsDefined(model))
-        model Delete();
     if (entry.serial == serial)
+    {
+        // The attachment goes away with the body.
+        entry.attached = undefined;
         cleanup_released_weapon(entry);
+    }
 }
 
 function clear_models()
@@ -222,8 +241,7 @@ function clear_models()
     restore_recorded_drops();
     foreach (entry in level.mvm_corpse_entries)
     {
-        if (IsDefined(entry.model))
-            entry.model Delete();
+        detach_weapon(entry);
         cleanup_released_weapon(entry);
         entry.released = false;
         entry.release_attempted = false;
@@ -290,21 +308,26 @@ function playback_manager()
             {
                 if (!IsDefined(entry.corpse) || !IsDefined(entry.weapon))
                     continue;
-                if (!IsDefined(entry.model) && !entry.released)
+                if (!IsDefined(entry.attached) && !entry.released)
                 {
                     if (!entry.corpse HasDObj(0))
                         continue;
-                    position = entry.corpse GetTagOrigin("tag_weapon_right");
-                    if (!IsDefined(position))
+                    if (!IsDefined(entry.corpse GetTagOrigin("tag_weapon_right")))
                         continue;
-                    entry.model = Spawn(0, position, "script_model");
-                    entry.model SetModel(entry.weapon.worldModel);
-                    entry.model.angles = entry.corpse GetTagAngles("tag_weapon_right");
-                    entry.model LinkTo(entry.corpse, "tag_weapon_right");
-                    level thread delete_with_corpse(entry.corpse, entry.serial, entry.model, entry);
+                    attach_weapon(entry);
+                    if (!IsDefined(entry.watched_serial) || entry.watched_serial != entry.serial)
+                    {
+                        entry.watched_serial = entry.serial;
+                        level thread delete_with_corpse(entry.corpse, entry.serial, entry);
+                    }
                     level.mvm_drop_refresh = true;
                 }
-                if (IsDefined(entry.model))
+                else if (IsDefined(entry.attached) && entry.corpse HasDObj(0) && !(entry.corpse IsAttached(entry.attached, "tag_weapon_right")))
+                {
+                    // A rebuilt body model (for example after a seek) loses attachments.
+                    entry.corpse Attach(entry.attached, "tag_weapon_right");
+                }
+                if (IsDefined(entry.attached))
                 {
                     count++;
                     if (GetDvarInt("mvm_releasegun", 0) == 0)
@@ -322,7 +345,7 @@ function playback_manager()
                         if (IsDefined(dropped))
                         {
                             entry.dropped = dropped;
-                            entry.model Delete();
+                            detach_weapon(entry);
                             entry.released = true;
                             count--;
                         }
