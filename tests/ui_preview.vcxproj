@@ -10,6 +10,8 @@
   <ItemGroup>
     <ClCompile Include="ui_preview.cpp" /><ClCompile Include="..\src\ui.cpp" />
     <ClCompile Include="..\src\binds.cpp" />
+    <ClCompile Include="..\src\animations_ui.cpp" />
+    <ClCompile Include="..\src\gif_preview.cpp" />
     <ClCompile Include="..\src\editor_ui.cpp" />
     <ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui.cpp" /><ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_draw.cpp" />
     <ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_tables.cpp" /><ClCompile Include="..\reMVM-t7\reMVM\helpers\ImGui\imgui_widgets.cpp" />

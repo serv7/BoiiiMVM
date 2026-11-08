@@ -7,7 +7,8 @@
 namespace theater {
 enum class action { toggle_game_hud,toggle_ui,cycle_view,free_camera,dolly_camera,
     interact,erase,reposition,apply,seek_back,seek_forward,speed_down,speed_up,
-    first_camera,pause,select_marker,save_path,load_path,erase_all,seek_to,exit_film };
+    first_camera,pause,select_marker,save_path,load_path,erase_all,seek_to,exit_film,
+    cycle_camera_next,cycle_camera_previous,speed_minimum,speed_normal,speed_maximum,clear_bodies };
 struct snapshot {
     bool available=false,playing=false,paused=false,repositioning=false,game_hud=true,native_hud=true,editing_camera=false;
     int tick=0,start_tick=0,end_tick=0,view=0,free_mode=0,hovered=-1,selected=-1;
@@ -19,9 +20,18 @@ struct snapshot {
 };
 struct options {
     float roll_step=1,fov_step=1,seek_seconds=5,move_speed=1;
+    float fast_multiplier=2,slow_multiplier=.25f;
     bool show_markers=true,show_help=true,menu_background=true;
+    bool responsive_camera=true;
+    bool hold_weapons=true;
+    bool release_weapons=false;
+    float weapon_release_delay=.65f;
+    bool native_weapon_drops=false;
 };
 bool initialize_backend();
+void load_options();
+bool native_menu_active();
+void open_game_menu();
 void shutdown_backend();
 void enqueue(action type,int index=-1);
 void enqueue_lens(lens value);

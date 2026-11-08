@@ -154,7 +154,7 @@ void configure_ui() {
     style.Colors[ImGuiCol_CheckMark]={1,.67f,.12f,1};
 }
 void draw_ui() {
-    snapshot state=current_snapshot();if(!state.playing || !hud_visible)return;
+    snapshot state=current_snapshot();if(!state.playing || !hud_visible || native_menu_active())return;
     auto recording=capture::get_status();
     if(recording.recording) {
         ImGui::GetForegroundDrawList()->AddCircleFilled({28,28},7,IM_COL32(255,48,47,255));
@@ -175,14 +175,17 @@ void draw_ui() {
     if(exit_dialog){
         ImGui::SetNextWindowPos({size.x*.5f,size.y*.43f},ImGuiCond_Always,{.5f,.5f});
         ImGui::SetNextWindowSize({420*scale,0});
-        ImGui::Begin("Leave theater film",nullptr,ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
+        ImGui::Begin("Theater menu",nullptr,ImGuiWindowFlags_NoResize|ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoSavedSettings);
         ImGui::SetWindowFontScale(scale);
-        ImGui::TextWrapped("Exit this film and return to the main menu?");ImGui::Spacing();
-        if(ImGui::Button("Return to main menu",{210*scale,34*scale})){
+        ImGui::TextWrapped("Open BO3's menu or leave the current film.");ImGui::Spacing();
+        if(ImGui::Button("Game menu / settings",{-1,34*scale})) {exit_dialog=false;open_game_menu();}
+        if(ImGui::Button("Exit demo",{210*scale,34*scale})){
             exit_dialog=false;enqueue(action::exit_film);
         }
-        ImGui::SameLine();if(ImGui::Button("Stay in film",{150*scale,34*scale}))exit_dialog=false;
-        ImGui::TextDisabled("Escape closes this dialog. %s opens it again.",binds::label(binds::id::exit_film).c_str());
+        ImGui::SameLine();if(ImGui::Button("Resume",{150*scale,34*scale}))exit_dialog=false;
+        ImGui::PushStyleColor(ImGuiCol_Text,ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+        ImGui::TextWrapped("Escape closes this dialog. %s opens it again.",binds::label(binds::id::exit_film).c_str());
+        ImGui::PopStyleColor();
         ImGui::End();
     }
 }

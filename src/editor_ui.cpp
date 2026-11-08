@@ -2,14 +2,16 @@
 #include "backend.hpp"
 #include "binds.hpp"
 #include "capture.hpp"
+#include "animations.hpp"
 #include <imgui.h>
 #include <cstdio>
 #include <map>
 namespace theater::editor {
 namespace {
 int section=0,selected_light=0;
+bool scroll_to_top=true;
 bool transparent_menu=false;
-const char* sections[]={"Sliders","Fog","Sun","Lights","Misc","Configs","Settings","Binds"};
+const char* sections[]={"Sliders","Fog","Sun","Lights","Misc","Configs","Settings","Binds","Animations"};
 void send(operation op,scene value={},int index=-1,const char* name="") {enqueue({op,std::move(value),index,name});}
 // Small shadows keep unframed labels legible against both bright and dark scenes.
 void shadow(ImVec2 pos,const char* label,float wrap=0) {
@@ -104,11 +106,15 @@ void file_controls(const char* id,const std::vector<std::string>& files,operatio
 void sliders(const theater::snapshot& film,options settings,const snapshot& editor) {
     title("CAMERA SLIDERS");
     if(slider("Movement speed",settings.move_speed,.0001f,10,"%.4fx",true))set_options(settings);
-    hint("Q down / E up use the same speed.");
+    if(checkbox("Responsive free camera",&settings.responsive_camera))set_options(settings);
+    if(slider("Shift multiplier",settings.fast_multiplier,1,100,"%.2fx",true))set_options(settings);
+    if(slider("Ctrl multiplier",settings.slow_multiplier,.0001f,1,"%.4fx",true))set_options(settings);
+    ImGui::TextDisabled("Shift: %.4fx | Ctrl: %.6fx",settings.move_speed*settings.fast_multiplier,settings.move_speed*settings.slow_multiplier);
+    wrapped("Q down / E up use the same speed. Camera speeds save automatically.");
     ImGui::Spacing();lens optics=film.optics;float fov=float(optics.fov);
     if(slider("Field of view",fov,.1f,75,"%.2f")) {optics.fov=fov;enqueue_lens(optics);}
     hint("Ctrl + mouse wheel adjusts FOV.");ImGui::Spacing();ImGui::Separator();ImGui::Spacing();
-    if(ImGui::Button("Reset movement to 1x")) {settings.move_speed=1;set_options(settings);}
+    if(ImGui::Button("Reset camera speeds")) {settings.move_speed=1;settings.fast_multiplier=2;settings.slow_multiplier=.25f;set_options(settings);}
     ImGui::Spacing();ImGui::Separator();ImGui::Spacing();
     if(ImGui::Button(editor.useful_dvars?"Disable useful dvars":"Enable useful dvars",{-1,30*ImGui::GetFontSize()/20.f}))
         enqueue({operation::toggle_useful_dvars,{},-1,"",editor.useful_dvars?0.f:1.f});
@@ -181,6 +187,7 @@ void lights_section(snapshot& s,float scale) {
     file_controls("light files",s.lighting,operation::save_lights,operation::load_lights,"LIGHTING FILES",scale);ImGui::EndDisabled();
 }
 void misc_section(snapshot& s,const theater::snapshot& film) {
+    title("DEATH ANIMATIONS");animations::draw_weapon_controls(ImGui::GetFontSize()/20.f);ImGui::Separator();
     ImGui::BeginDisabled(!s.misc_ready);auto& v=s.values;bool changed=false;
     title("VISIBILITY");changed|=checkbox("Remove gun",&v.remove_gun);ImGui::SameLine();changed|=checkbox("Draw 2D",&v.draw_2d);
     changed|=checkbox("Remove HUD",&v.remove_hud);ImGui::SameLine();ImGui::BeginDisabled(!s.blood_ready);changed|=checkbox("Remove blood overlay",&v.remove_blood);ImGui::EndDisabled();
@@ -203,6 +210,7 @@ void configs_section(snapshot& s,float scale) {
     ImGui::Spacing();wrapped("Restore all returns this film to its captured defaults. Reload rescans game settings and refreshes files without discarding your current look.");
 }
 void settings_section(options settings) {
+    ImGui::TextDisabled("Frame rate: %.0f FPS",ImGui::GetIO().Framerate);
     title("INPUT SETTINGS");bool changed=false;
     changed|=slider("Roll per notch",settings.roll_step,.1f,15,"%.1f deg");changed|=slider("FOV per notch",settings.fov_step,.1f,10,"%.1f");
     changed|=slider("Seek step",settings.seek_seconds,.1f,30,"%.1f sec");ImGui::Spacing();
@@ -246,11 +254,11 @@ void binds_section(float scale) {
     hint("Saved automatically in MVM/Theater/binds.json");
 }
 }
-void select_section(int index) {section=std::clamp(index,0,7);}
+void select_section(int index) {int next=std::clamp(index,0,8);if(next!=section)scroll_to_top=true;section=next;}
 void draw_menu(float scale) {
     auto s=current();auto film=current_snapshot();auto settings=current_options();auto screen=ImGui::GetIO().DisplaySize;
     transparent_menu=!settings.menu_background;
-    float width=std::min(520.f*scale,screen.x-24*scale),height=screen.y-244*scale;
+    float width=std::min((section==8?700.f:520.f)*scale,screen.x-24*scale),height=screen.y-244*scale;
     ImGui::SetNextWindowPos({12*scale,12*scale});ImGui::SetNextWindowSize({width,height});
     ImGui::SetNextWindowBgAlpha(.94f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,{12*scale,10*scale});ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,{6*scale,6*scale});
@@ -267,18 +275,19 @@ void draw_menu(float scale) {
     bool no_background=!settings.menu_background;
     if(checkbox("No background",&no_background)) {settings.menu_background=!no_background;set_options(settings);}
     ImGui::SameLine();hint("Live scene adjustments");ImGui::Separator();
-    // Two compact rows keep every section reachable at 720p.
-    for(int i=0;i<8;++i) {
-        ImGui::PushID(i);if(i%4)ImGui::SameLine(0,2*scale);
+    // Compact rows keep every section reachable at 720p.
+    for(int i=0;i<9;++i) {
+        ImGui::PushID(i);if(i%5)ImGui::SameLine(0,2*scale);
         float tab_width=ImGui::CalcTextSize(sections[i]).x+12*scale;auto pos=ImGui::GetCursorScreenPos();
-        if(ImGui::Selectable(sections[i],section==i,0,{tab_width,26*scale}))section=i;
+        if(ImGui::Selectable(sections[i],section==i,0,{tab_width,26*scale}))select_section(i);
         if(transparent_menu) {shadow(pos,sections[i]);ImGui::GetWindowDrawList()->AddText(ImGui::GetFont(),ImGui::GetFontSize(),pos,ImGui::GetColorU32(ImGuiCol_Text),sections[i]);}
         ImGui::PopID();
     }
     ImGui::Separator();float footer=48*scale;
     ImGui::BeginChild("Settings content",{0,-footer},false,ImGuiWindowFlags_AlwaysVerticalScrollbar);
+    if(scroll_to_top){ImGui::SetScrollY(0);scroll_to_top=false;}
     ImGui::SetWindowFontScale(1);
-    switch(section) {case 0:sliders(film,settings,s);break;case 1:fog_section(s,scale);break;case 2:sun_section(s,scale);break;case 3:lights_section(s,scale);break;case 4:misc_section(s,film);break;case 5:configs_section(s,scale);break;case 6:settings_section(settings);break;case 7:binds_section(scale);break;}
+    switch(section) {case 0:sliders(film,settings,s);break;case 1:fog_section(s,scale);break;case 2:sun_section(s,scale);break;case 3:lights_section(s,scale);break;case 4:misc_section(s,film);break;case 5:configs_section(s,scale);break;case 6:settings_section(settings);break;case 7:binds_section(scale);break;case 8:animations::draw_menu(scale,film.paused);break;}
     ImGui::EndChild();ImGui::Separator();
     // Keep long status messages inside the narrow panel; the full message is
     // available on hover so an imported path cannot grow the footer.

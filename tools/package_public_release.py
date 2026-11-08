@@ -12,7 +12,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.1"
+VERSION = "0.9.0-test9"
 NAME = f"BoiiiMVM-v{VERSION}.zip"
 DATA_DIRS = ("gamesettings", "launcher", "lookup_tables", "scripts", "ui_scripts")
 
@@ -50,25 +50,44 @@ def main() -> None:
     built = (ROOT / "build/bo3_theater.dll").read_bytes()
     installed = (game / "boiii/plugins/bo3_theater.dll").read_bytes()
     if built != installed or f"BO3 Theater Keyboard UI {VERSION}".encode() not in built:
-        raise ValueError("Installed theater plugin does not match the v0.8.1 build")
+        raise ValueError(f"Installed theater plugin does not match the {VERSION} build")
     if not (game / "BlackOps3.exe").is_file():
         raise FileNotFoundError("The game folder must contain the user's BlackOps3.exe")
 
     entries: dict[str, bytes] = {}
     add(entries, "boiii.exe", game / "boiii.exe")
     add(entries, "boiii/plugins/bo3_theater.dll", game / "boiii/plugins/bo3_theater.dll")
-    for script in ("botmod.gsc", "botmod_ai.gsc"):
+    for script in ("botmod.gsc", "botmod_ai.gsc", "mvm_bot_tools.gsc"):
         add(entries, f"boiii/custom_scripts/mp/{script}", ROOT / "botmod" / script)
+    helper_source = ROOT / "botmod/mvm_corpse.csc"
+    helper_installed = game / "boiii/custom_scripts/mvm_corpse.csc"
+    if helper_source.read_bytes() != helper_installed.read_bytes():
+        raise ValueError("Installed playback helper does not match the source being packaged")
+    add(entries, "boiii/custom_scripts/mvm_corpse.csc", helper_source)
     for dirname in DATA_DIRS:
         walk(entries, data / dirname, f"boiii/data/{dirname}")
+    client_ui = ROOT / "assets/client-ui"
+    for path in client_ui.rglob("*.lua"):
+        relative = path.relative_to(client_ui)
+        if path.read_bytes() != (game / "boiii/ui_scripts" / relative).read_bytes():
+            raise ValueError(f"Installed client UI script does not match source: {relative}")
+    walk(entries, client_ui, "boiii/ui_scripts")
+    add(entries, "MVM/Theater/CLIENT-UI.md", ROOT / "docs/CLIENT-UI.md")
     for file in sorted((ROOT / "assets/ffmpeg").iterdir()):
         if file.is_file():
             add(entries, "MVM/Theater/" + file.name, file)
     for file in sorted((ROOT / "assets/fog-presets").glob("*.zfog")):
         add(entries, "MVM/Theater/fog-presets/" + file.name, file)
+    walk(entries, ROOT / "assets/death-previews", "MVM/Theater/death-previews")
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    if "-test" in VERSION:
+        readme = (f"# BoiiiMVM {VERSION} — local test build\n\n"
+                  + (ROOT / "docs/0.9.0-TESTING.md").read_text(encoding="utf-8")
+                  + "\n---\n\n" + readme)
     base = "https://github.com/serv7/BoiiiMVM"
+    readme = readme.replace("(docs/CLIENT-UI.md)", "(MVM/Theater/CLIENT-UI.md)")
+    readme = readme.replace("(CLIENT-UI.md)", "(MVM/Theater/CLIENT-UI.md)")
     readme = readme.replace("(docs/", f"({base}/blob/main/docs/")
     readme = readme.replace(f"({base}/blob/main/docs/images/",
                             f"({base}/raw/refs/heads/main/docs/images/")

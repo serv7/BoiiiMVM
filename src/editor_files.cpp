@@ -72,7 +72,8 @@ std::string serialize(const config& c) {
         {"cg_drawGun",!s.remove_gun},{"draw2d",s.draw_2d},{"removeHud",s.remove_hud},{"removeBlood",s.remove_blood},
         {"skyRotation",s.sky_rotation},{"skyTransition",s.sky_transition?1:0},{"exposure",s.exposure},{"GunPosition",vector(s.gun)},
         {"lighting",lights_json(s.lights)},{"moveSpeed",c.move_speed},{"fov",c.fov},{"timescale",c.timescale},
-        {"rollStep",c.roll_step},{"fovStep",c.fov_step},{"seekSeconds",c.seek_seconds},{"showMarkers",c.markers},{"showHelp",c.help},{"menuBackground",c.menu_background}};
+        {"rollStep",c.roll_step},{"fovStep",c.fov_step},{"seekSeconds",c.seek_seconds},{"fastMultiplier",c.fast_multiplier},
+        {"slowMultiplier",c.slow_multiplier},{"showMarkers",c.markers},{"showHelp",c.help},{"menuBackground",c.menu_background}};
     return j.dump(2);
 }
 config deserialize(const std::string& text) {
@@ -89,6 +90,7 @@ config deserialize(const std::string& text) {
     c.has_lights=j.contains("lighting");if(c.has_lights)s.lights=lights_json(j.at("lighting"));
     c.move_speed=number(j,"moveSpeed",1,.0001f,10);c.fov=number(j,"fov",65,.1f,75);c.timescale=number(j,"timescale",1,.01f,10);
     c.roll_step=number(j,"rollStep",1,.1f,15);c.fov_step=number(j,"fovStep",1,.1f,10);c.seek_seconds=number(j,"seekSeconds",5,.1f,30);
+    c.fast_multiplier=number(j,"fastMultiplier",2,1,100);c.slow_multiplier=number(j,"slowMultiplier",.25f,.0001f,1);
     c.markers=j.value("showMarkers",true);c.help=j.value("showHelp",true);c.menu_background=j.value("menuBackground",true);return c;
 }
 uint32_t hash_name(const char* name) {uint32_t result=0x4b9ace2f;do {unsigned char c=*name++;if(c>='A' && c<='Z')c+=32;result=16777619u*(result^c);if(!c)break;}while(true);return result;}

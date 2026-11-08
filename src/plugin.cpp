@@ -3,6 +3,8 @@
 #include "capture.hpp"
 #include "reshade_capture.hpp"
 #include "overlay_hook.hpp"
+#include "gif_preview.hpp"
+#include "animations.hpp"
 #include <d3d11.h>
 #include <dxgi.h>
 #include <imgui.h>
@@ -28,9 +30,11 @@ ID3D11RenderTargetView* target=nullptr;
 IDXGISwapChain* active_swap=nullptr;
 HWND window=nullptr;
 WNDPROC old_wndproc=nullptr;
+UINT native_menu_message=RegisterWindowMessageW(L"BoiiiMVM.OpenNativeMenu");
 ImGuiContext* imgui_context=nullptr;
 std::atomic<bool> stopping=false;
 std::thread init_thread;
+std::mutex overlay_mutex;
 bool swallowed[256]{};
 using set_cursor_fn=BOOL(WINAPI*)(int,int);
 using clip_cursor_fn=BOOL(WINAPI*)(const RECT*);
@@ -76,7 +80,10 @@ bool initialize_cursor_hooks() {
 bool dispatch_binding(theater::binds::id selected,WPARAM key) {
     using namespace theater;
     auto state=current_snapshot();
-    if(!state.playing || GetForegroundWindow()!=window)return false;
+    if(selected==binds::id::clear_bodies && !state.playing && state.available && GetForegroundWindow()==window) {
+        enqueue(action::clear_bodies);return true;
+    }
+    if(!state.playing || native_menu_active() || GetForegroundWindow()!=window)return false;
     if(exit_dialog)return true;
     if(selected==binds::id::controls) {clear_camera_lift();hud_visible=!hud_visible.load(); if(!hud_visible)menu_open=false;return true;}
     if(selected==binds::id::menu) {clear_camera_lift();close_camera_editor();menu_open=!menu_open.load();if(menu_open)hud_visible=true;return true;}
@@ -97,10 +104,13 @@ bool dispatch_binding(theater::binds::id selected,WPARAM key) {
     case binds::id::seek_forward:enqueue(action::seek_forward);return true;
     case binds::id::speed_up:enqueue(action::speed_up);return true;
     case binds::id::speed_down:enqueue(action::speed_down);return true;
+    case binds::id::speed_minimum:enqueue(action::speed_minimum);return true;
+    case binds::id::speed_normal:enqueue(action::speed_normal);return true;
+    case binds::id::speed_maximum:enqueue(action::speed_maximum);return true;
     case binds::id::pause:enqueue(action::pause);return true;
     case binds::id::first_camera:enqueue(action::first_camera);return true;
-    case binds::id::dolly:if(state.view==2){clear_camera_lift();enqueue(action::dolly_camera);}return true;
-    case binds::id::edit:if(state.view==2){clear_camera_lift();enqueue(action::free_camera);}return true;
+    case binds::id::dolly:if(state.view==2){clear_camera_lift();enqueue(action::cycle_camera_next);}return true;
+    case binds::id::edit:if(state.view==2){clear_camera_lift();enqueue(action::cycle_camera_previous);}return true;
     case binds::id::roll_left:if(state.view==2)enqueue_roll(-1);return true;
     case binds::id::roll_right:if(state.view==2)enqueue_roll(1);return true;
     case binds::id::zoom_in:if(state.view==2)enqueue_zoom(1);return true;
@@ -113,9 +123,23 @@ bool capture_key(WPARAM key) {
         if(key==VK_ESCAPE){theater::binds::cancel();return true;}
         theater::binds::accept({int(key),theater::binds::modifiers()});return true;
     }
-    return dispatch_binding(theater::binds::match({int(key),theater::binds::modifiers()}),key);
+    int modifiers=theater::binds::modifiers();
+    auto selected=theater::binds::match({int(key),modifiers});
+    if(selected==theater::binds::id::count && !(modifiers&theater::binds::alt)) {
+        for(auto lift:{theater::binds::id::lift_up,theater::binds::id::lift_down}) {
+            auto chord=theater::binds::get(lift);
+            if(chord.key==int(key) && chord.modifiers==0){selected=lift;break;}
+        }
+    }
+    return dispatch_binding(selected,key);
 }
 LRESULT CALLBACK wndproc(HWND hwnd,UINT msg,WPARAM w,LPARAM l) {
+    if(msg==native_menu_message) {
+        theater::menu_open=false;theater::exit_dialog=false;theater::clear_camera_lift();sync_mouse_capture();
+        LPARAM scan=LPARAM(MapVirtualKeyW(VK_ESCAPE,MAPVK_VK_TO_VSC))<<16;
+        CallWindowProcW(old_wndproc,hwnd,WM_KEYDOWN,VK_ESCAPE,1|scan);
+        return CallWindowProcW(old_wndproc,hwnd,WM_KEYUP,VK_ESCAPE,1|scan|LPARAM(0xc0000000u));
+    }
     if(imgui_context)ImGui::SetCurrentContext(imgui_context);
     if(msg==WM_KILLFOCUS) {theater::clear_camera_lift();theater::menu_open=false;theater::exit_dialog=false;std::fill(std::begin(swallowed),std::end(swallowed),false);}
     if((msg==WM_KEYUP || msg==WM_SYSKEYUP)){
@@ -127,14 +151,19 @@ LRESULT CALLBACK wndproc(HWND hwnd,UINT msg,WPARAM w,LPARAM l) {
         if(key==theater::binds::get(theater::binds::id::lift_down).key)theater::set_camera_lift_key(false,false);
         if(key==theater::binds::get(theater::binds::id::lift_up).key)theater::set_camera_lift_key(true,false);
     }
-    bool is_theater=theater::current_snapshot().playing;
+    bool is_theater=theater::current_snapshot().playing && !theater::native_menu_active();
+    if(!theater::current_snapshot().playing && (msg==WM_KEYDOWN || msg==WM_SYSKEYDOWN) && w<256 && !(l&(1LL<<30)) &&
+        theater::binds::match({int(w),theater::binds::modifiers()})==theater::binds::id::clear_bodies && capture_key(w)) {
+        swallowed[w]=true;return 0;
+    }
     if(is_theater && (msg==WM_KEYDOWN || msg==WM_SYSKEYDOWN) && w<256) {
         if((theater::menu_open || theater::exit_dialog) && imgui_context && !theater::binds::listening())ImGui_ImplWin32_WndProcHandler(hwnd,msg,w,l);
         if(!(l&(1LL<<30))) {
-            if(w==VK_ESCAPE && !theater::menu_open && !theater::binds::listening()){
-                if(theater::exit_dialog)theater::exit_dialog=false;
-                else {theater::clear_camera_lift();theater::exit_dialog=true;theater::hud_visible=true;}
-                swallowed[w]=true;
+            if(w==VK_ESCAPE && !theater::binds::listening()){
+                theater::clear_camera_lift();
+                swallowed[w]=theater::menu_open || theater::exit_dialog;
+                theater::menu_open=false;theater::exit_dialog=false;theater::close_camera_editor();
+                if(!swallowed[w]) {theater::exit_dialog=true;theater::hud_visible=true;swallowed[w]=true;}
             } else swallowed[w]=capture_key(w);
         }
         else if(swallowed[w]){
@@ -200,11 +229,16 @@ bool initialize_renderer(IDXGISwapChain* swap) {
     ImGui::GetIO().IniFilename=nullptr;ImGui::GetIO().LogFilename=nullptr;
     theater::configure_ui();
     if(!ImGui_ImplWin32_Init(window) || !ImGui_ImplDX11_Init(device,context))return false;
+    theater::gif_preview::set_device(device);
     theater::reshade_capture::initialize();
     old_wndproc=reinterpret_cast<WNDPROC>(SetWindowLongPtrW(window,GWLP_WNDPROC,reinterpret_cast<LONG_PTR>(wndproc)));
     theater::log_message("D3D11 UI initialized");return create_target(swap);
 }
 void render_overlay(ID3D11RenderTargetView* output) {
+    // Present and ReShade can both request a draw; never enter the ImGui or
+    // preview cache twice, including during shutdown.
+    std::unique_lock overlay_lock(overlay_mutex,std::try_to_lock);
+    if(!overlay_lock.owns_lock())return;
     if(!imgui_context || !context || stopping)return;
     ID3D11RenderTargetView* destination=output?output:target;
     if(!destination)return;
@@ -216,6 +250,7 @@ void render_overlay(ID3D11RenderTargetView* output) {
     context->OMGetRenderTargets(1,&saved,&depth);
     context->OMSetRenderTargets(1,&destination,nullptr);
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+    theater::gif_preview::finish_frame();
     context->OMSetRenderTargets(1,&saved,depth);
     if(saved)saved->Release();if(depth)depth->Release();
     ImGui::SetCurrentContext(previous);
@@ -242,12 +277,13 @@ HRESULT __stdcall resize(IDXGISwapChain* swap,UINT count,UINT width,UINT height,
 }
 namespace theater {
 void render_after_reshade(ID3D11RenderTargetView* output){render_overlay(output);}
+void open_game_menu(){if(window && native_menu_message)PostMessageW(window,native_menu_message,0,0);}
 }
-extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.8.1";}
+extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test9";}
 extern "C" __declspec(dllexport) void post_unpack() {
     if(init_thread.joinable())return;
     init_thread=std::thread([] {
-        std::filesystem::create_directories("MVM");theater::binds::load();theater::capture::load_settings();theater::log_message("Plugin loaded");
+        std::filesystem::create_directories("MVM");theater::load_options();theater::binds::load();theater::capture::load_settings();theater::log_message(p_name());
         theater::initialize_diagnostics();
         // Wait until the client's other post_unpack hooks are installed.
         for(int i=0;i<20 && !stopping;++i)Sleep(100);
@@ -272,7 +308,9 @@ extern "C" __declspec(dllexport) void pre_destroy() {
     stopping=true;if(init_thread.joinable())init_thread.join();
     theater::reshade_capture::shutdown();
     theater::capture::shutdown();
+    {std::lock_guard overlay_lock(overlay_mutex);theater::gif_preview::shutdown();}
     theater::shutdown_backend();
+    theater::animations::shutdown();
     sync_mouse_capture();
     if(cursor_hooks) {
         MH_DisableHook(reinterpret_cast<void*>(SetCursorPos));MH_DisableHook(reinterpret_cast<void*>(ClipCursor));

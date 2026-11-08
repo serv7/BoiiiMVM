@@ -114,12 +114,14 @@ int main() {
         std::printf("bool output %d\n",int(decoded));check(decoded==value);
     }
     config original;original.menu_background=false;original.move_speed=.0001f;original.fov=.1f;original.timescale=.01f;
+    original.fast_multiplier=12;original.slow_multiplier=.01f;
     original.values.fog_enabled=original.values.misc_enabled=true;original.values.sync_sun=true;
     original.values.remove_gun=original.values.remove_blood=original.values.remove_hud=true;
     original.values.mist.tint={.2f,1.7f,4.5f};original.values.sunlight.tint={3,2,1};original.values.sunlight.brightness=32000;
     original.values.gun={-10,2,10};light sample_light;sample_light.type=1;sample_light.look_x=125;sample_light.position={2,3,4};original.values.lights={sample_light,sample_light};
     auto loaded=deserialize(serialize(original));check(serialize(original)==serialize(loaded));
     check(!loaded.menu_background);
+    check(loaded.fast_multiplier==12 && loaded.slow_multiplier==.01f);
     auto legacy=serialize(original);auto pref=legacy.find("  \"menuBackground\": false,\n");check(pref!=std::string::npos);
     legacy.erase(pref,std::strlen("  \"menuBackground\": false,\n"));check(deserialize(legacy).menu_background);
     std::puts("CFG round trip and legacy background preference passed");

@@ -1,0 +1,317 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="mvm.cpp" />
+    <ClCompile Include="core\core.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\render.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\ui_wrapper.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="game\game_context.cpp">
+      <Filter>game</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\logs.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\utils.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\imgui_card.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_demo.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_draw.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_impl_dx9.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_impl_dx10.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_impl_dx11.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_impl_win32.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_stdlib.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_tables.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ImGui\imgui_widgets.cpp">
+      <Filter>helpers\ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\kiero\kiero.cpp">
+      <Filter>helpers\kiero</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MH\buffer.c">
+      <Filter>helpers\MH</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MH\hde32.c">
+      <Filter>helpers\MH</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MH\hde64.c">
+      <Filter>helpers\MH</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MH\hook.c">
+      <Filter>helpers\MH</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\MH\trampoline.c">
+      <Filter>helpers\MH</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\window.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="core\input.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\key_binding_store.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="mvm\track_player.cpp">
+      <Filter>mvm</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\imguizmo.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\math.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\shaders_store.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="core\assets\overlay.cpp">
+      <Filter>core\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="mvm\camera.cpp">
+      <Filter>mvm</Filter>
+    </ClCompile>
+    <ClCompile Include="game\features\lightman.cpp">
+      <Filter>game\features</Filter>
+    </ClCompile>
+    <ClCompile Include="game\features\director_camera.cpp">
+      <Filter>game\features</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="mvm.h" />
+    <ClInclude Include="core\core.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\render.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\ui_wrapper.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="game\game_context.h">
+      <Filter>game</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\logs.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\utils.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\math.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\imgui_card.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\imgui_ext.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\imgui_icons.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\imgui_notify.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\thread_pool.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\XorStr.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imconfig.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_impl_dx9.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_impl_dx10.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_impl_dx11.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_impl_win32.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_internal.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imgui_stdlib.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imstb_rectpack.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imstb_textedit.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ImGui\imstb_truetype.h">
+      <Filter>helpers\ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\kiero\kiero.h">
+      <Filter>helpers\kiero</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\buffer.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\hde32.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\hde64.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\MinHook.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\pstdint.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\table32.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\table64.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\MH\trampoline.h">
+      <Filter>helpers\MH</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\window.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\animated_value.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\timer.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\input.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\key_binding_store.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\patch.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="mvm\track_player.h">
+      <Filter>mvm</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\imguizmo.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\function.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\shaders_store.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\recources.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\overlay.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="game\assets\structs.h">
+      <Filter>game\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="game\assets\addresses.h">
+      <Filter>game\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\memory.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="game\features\custom_dolly_marker.h">
+      <Filter>game\features</Filter>
+    </ClInclude>
+    <ClInclude Include="mvm\camera.h">
+      <Filter>mvm</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\main_window.h">
+      <Filter>ui</Filter>
+    </ClInclude>
+    <ClInclude Include="core\assets\pointer.h">
+      <Filter>core\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="game\assets\functions.h">
+      <Filter>game\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="game\features\lightman.h">
+      <Filter>game\features</Filter>
+    </ClInclude>
+    <ClInclude Include="game\features\director_camera.h">
+      <Filter>game\features</Filter>
+    </ClInclude>
+    <ClInclude Include="ui\main_overlay.h" />
+    <ClInclude Include="mvm_build.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="core">
+      <UniqueIdentifier>{5804025b-1139-4573-aa72-130c58ab0335}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game">
+      <UniqueIdentifier>{b7460dcc-1959-48c2-825a-3b237dbb61ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core\assets">
+      <UniqueIdentifier>{7bb26327-cf88-4354-8be5-b68f93a1085f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{06677ad9-5d7a-442d-b17e-406660532cc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\ImGui">
+      <UniqueIdentifier>{15e64071-041b-410c-8b6c-ec892f716f50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\kiero">
+      <UniqueIdentifier>{618e4682-61fd-4ad5-a00e-942a8941520c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers\MH">
+      <UniqueIdentifier>{69034f42-2748-4f0d-9c3e-5b75d8cead19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mvm">
+      <UniqueIdentifier>{ba0853b2-14bc-4fb6-96db-9de971fa3bc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game\assets">
+      <UniqueIdentifier>{e9d53274-a633-42a2-a4c5-7052786f1d26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="game\features">
+      <UniqueIdentifier>{e5eb388a-be2c-46dd-a0b6-f80686d7d0f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ui">
+      <UniqueIdentifier>{4e8eba0c-2e00-48d9-8fdb-7d87d974a36e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>

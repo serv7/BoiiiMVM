@@ -1,8 +1,42 @@
 #include "../src/theater_logic.hpp"
 #include "../src/camera_input.hpp"
+#include "../src/animation_records.hpp"
 #include <cassert>
+struct animation_fixture {
+    std::map<std::string,std::pair<uintptr_t,theater::animations::record>> assets;
+    uintptr_t find(const std::string& name){auto it=assets.find(name);return it==assets.end()?0:it->second.first;}
+    bool read(const std::string& name,uintptr_t address,theater::animations::record& out){auto it=assets.find(name);if(it==assets.end() || it->second.first!=address)return false;out=it->second.second;return true;}
+    bool write(uintptr_t address,const theater::animations::record& data){for(auto& [name,item]:assets)if(item.first==address){item.second=data;return true;}return false;}
+};
 int main() {
     using namespace theater;
+    assert(modified_camera_speed(.1f,4,.1f,true,false)==.4f);
+    assert(std::abs(modified_camera_speed(.1f,4,.1f,true,true)-.01f)<.00001f);
+    assert(next_camera_mode(0,1)==2 && next_camera_mode(0,-1)==1);
+    assert(next_camera_mode(1,1)==2 && next_camera_mode(2,1)==1);
+    assert(next_camera_mode(1,-1)==2 && next_camera_mode(2,-1)==1);
+    animation_fixture clips;animations::record a{},b{},c{};a.fill(1);b.fill(2);c.fill(3);
+    clips.assets={{"a",{100,a}},{"b",{200,b}},{"c",{300,c}}};animations::swaps swaps;
+    assert(!swaps.replace("a","a",clips));assert(!swaps.replace("a","missing",clips));
+    assert(swaps.replace("a","b",clips));auto replaced=clips.assets["a"].second;
+    assert(replaced[8]==2 && replaced[animations::name_offset]==1 && replaced.back()==2);
+    assert(swaps.replace("b","c",clips));assert(swaps.replace("c","b",clips));assert(clips.assets["c"].second[8]==2);
+    assert(swaps.restore_all(clips));assert(clips.assets["a"].second==a && clips.assets["b"].second==b && clips.assets["c"].second==c);
+    assert(swaps.replace("a","b",clips));clips.assets["a"].second[10]=19;assert(!swaps.restore("a",clips));
+    swaps.clear();clips.assets["a"].second=a;assert(swaps.replace("a","b",clips));clips.assets["a"].first=400;assert(!swaps.restore("a",clips));
+    demo_clock clock;assert(clock.sample(1000,false,.01,0)==1000);
+    auto fractional=clock.sample(1000,false,.01,16.666);assert(fractional>1000.16 && fractional<1000.17);
+    assert(clock.sample(1000,true,.01,16.666)==fractional);
+    assert(clock.sample(500,false,1,16.666)==500);
+    assert(sample_lens({{0,{},{},{0,60,1,2}},{1000,{},{},{30,70,2,3}}},500.1).roll>15);
+    std::vector<marker> looking={{0,{1000,100,200},{1100,100,200},{0,65,2,8}},
+        {1000,{2000,200,300},{2000,300,300},{10,65,2,8}},
+        {2000,{3000,300,400},{2900,300,400},{20,65,2,8}}};
+    auto angle=sample_dolly_angles(looking,1000);assert(angle && std::abs(angle->x)<.0001 && std::abs(angle->y-90)<.0001 && angle->z==10);
+    auto before_angle=sample_dolly_angles(looking,999.9),after_angle=sample_dolly_angles(looking,1000.1);
+    assert(std::abs((angle->y-before_angle->y)-(after_angle->y-angle->y))<.001);
+    looking[0].direction={900,101.745f,200};looking[1].direction={1900,198.255f,300};looking.resize(2);
+    angle=sample_dolly_angles(looking,500);assert(angle && std::abs(angle->y-180)<.01 && std::abs(angle->x)<.001);
     camera_buttons original={0x84210001u,0x12345678u,0x89abcdefu};
     auto up=lift_buttons(original,1),down=lift_buttons(original,2),both=lift_buttons(original,3),none=lift_buttons(original,0);
     assert((up.main&(3u<<16))==(1u<<17) && (up.controller_high&(1u<<31)) && !(up.controller_low&2));
@@ -57,6 +91,13 @@ int main() {
     assert(mid.fov==70 && mid.focus==2 && mid.aperture==3);
     assert(sample_lens(path,0).fov==60);
     assert(sample_lens(path,1000).fov==80);
+    auto quarter=sample_lens(path,125);assert(quarter.fov>60 && quarter.fov<65);
+    std::vector<marker> rotating={{0,{},{},{170,30,1,1}},{1000,{},{},{-175,45,2,2}},
+                                  {2500,{},{},{-140,65,4,4}}};
+    auto rb=sample_lens(rotating,999),ra=sample_lens(rotating,1000),rf=sample_lens(rotating,1001);
+    assert(std::abs((ra.roll-rb.roll)-(rf.roll-ra.roll))<.0001f);
+    assert(std::abs((ra.fov-rb.fov)-(rf.fov-ra.fov))<.0001);
+    for(int tick=0;tick<=2500;++tick){auto v=sample_lens(rotating,tick);assert(v.roll>=169.99f && v.roll<=220.01f && v.fov>=29.99 && v.fov<=65.01);}
     auto eased=sample_dolly_position(path,125);
     assert(eased && eased->x>110 && eased->x<125);
     assert(sample_dolly_position(path,100)->x==100);

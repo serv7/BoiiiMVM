@@ -31,6 +31,8 @@ In a theater film, press **F3** until you reach Free Camera. Move to different f
 
 Read the full [bot-mod tutorial](docs/BOT-MOD.md) and [cinematic/theater tutorial](docs/THEATER.md) for every feature and default bind.
 
+The local [client UI update](docs/CLIENT-UI.md) restores **Escape → Change Team** in public multiplayer matches when the server allows team changes, and reapplies both safe-area settings at **0.88** on UI startup.
+
 ## Theater controls
 
 These defaults can be changed in **Tab → Binds**. Bot-mod binds are changed in **Insert → Keybinds**.

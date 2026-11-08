@@ -24,6 +24,8 @@ inline constexpr fingerprint camera_vertical_up = {0x25d34d2,"\x8b\x4f\x04\x8b\x
 inline constexpr fingerprint camera_vertical_down = {0x25d34e6,"\xc1\xe9\x10\xf6\xc1\x01",6};
 inline constexpr fingerprint camera_vertical_controller = {0x25d348a,"\x66\x83\x7f\x4c\x00",5};
 inline constexpr uintptr_t theater_pointer = 0x197eba00;
+// Verified from CL_Keys_AddCatcher / Lua SetLuiKeyCatcher in the supported build.
+inline constexpr uintptr_t key_catchers = 0x53d8bc4;
 inline constexpr uintptr_t demo_state = 0x191df098;
 inline constexpr uintptr_t main_frame = 0x20f8e00;
 inline constexpr uintptr_t tick = 0x3448598;

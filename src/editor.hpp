@@ -35,7 +35,8 @@ struct scene {
     float exposure=10,sky_rotation=0;vec3 gun;
     std::vector<light> lights;
 };
-struct config {scene values;float move_speed=1,fov=65,timescale=1,roll_step=1,fov_step=1,seek_seconds=5;bool markers=true,help=true,has_lights=true,menu_background=true;};
+struct config {scene values;float move_speed=1,fov=65,timescale=1,roll_step=1,fov_step=1,seek_seconds=5;
+    float fast_multiplier=2,slow_multiplier=.25f;bool markers=true,help=true,has_lights=true,menu_background=true;};
 struct snapshot {
     scene values;bool ready=false,fog_ready=false,sun_ready=false,misc_ready=false,lights_ready=false,blood_ready=false;
     bool useful_dvars=false,useful_dvars_ready=false;

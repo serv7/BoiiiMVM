@@ -15,6 +15,11 @@
   <ItemGroup>
     <ClCompile Include="src\plugin.cpp" />
     <ClCompile Include="src\binds.cpp" />
+    <ClCompile Include="src\preferences.cpp" />
+    <ClCompile Include="src\playback_helper.cpp" />
+    <ClCompile Include="src\animations.cpp" />
+    <ClCompile Include="src\animations_ui.cpp" />
+    <ClCompile Include="src\gif_preview.cpp" />
     <ClCompile Include="src\capture.cpp" />
     <ClCompile Include="src\reshade_capture.cpp" />
     <ClCompile Include="src\backend.cpp" />

@@ -4,6 +4,11 @@
 #include "camera_input.hpp"
 #include "editor.hpp"
 #include "capture.hpp"
+#include "preferences.hpp"
+#include "animations.hpp"
+#include "published_value.hpp"
+#include "controls_mailbox.hpp"
+#include "playback_helper.hpp"
 #include <MH/MinHook.h>
 #include <mutex>
 #include <deque>
@@ -21,8 +26,19 @@ uintptr_t base=0,session=0;
 std::recursive_mutex mutex;
 snapshot state;
 options settings;
+published_value<snapshot> visible_state;
+controls_mailbox ui_controls;
+std::atomic<bool> close_edit_requested=false;
+bool preferences_dirty=false;ULONGLONG preferences_due=0;
+int applied_hold_weapons=-1;
+int applied_weapon_drops=-1;
+int applied_release_weapons=-1;float applied_release_delay=-1;
 struct request { action type; int index; std::optional<lens> optics; float wheel=0; bool zoom=false; };
 std::deque<request> pending;
+std::mutex requests_mutex;
+std::deque<request> take_requests(){std::lock_guard lock(requests_mutex);std::deque<request> work;work.swap(pending);return work;}
+void apply_requested_options(){if(auto value=ui_controls.take()){settings=*value;preferences_dirty=true;preferences_due=GetTickCount64()+300;}}
+void save_preferences(){if(preferences_dirty){preferences_dirty=false;if(!preferences::save(settings))log_message("Could not save camera preferences");}}
 std::map<int,lens> extras;
 lens current_lens;
 void (*main_original)()=nullptr;
@@ -30,6 +46,12 @@ void (*camera_original)()=nullptr;
 void (*angles_transfer_original)(const void*,void*)=nullptr;
 void (*movement_original)(void*)=nullptr;
 movement_scaler movement;
+demo_clock path_clock;double render_tick=0;LONGLONG camera_counter=0,movement_counter=0;
+double elapsed_ms(LONGLONG& previous) {
+    LARGE_INTEGER now,frequency;QueryPerformanceCounter(&now);QueryPerformanceFrequency(&frequency);
+    double result=previous?double(now.QuadPart-previous)*1000./frequency.QuadPart:1000./60.;previous=now.QuadPart;
+    return std::clamp(result,0.,100.);
+}
 std::atomic<unsigned> lift_keys=0;
 bool valid=false,owned=false,old_native_hidden=false,old_game_hidden=false;
 bool input_owned=false,old_block=false,repositioning=false,manual_lens=false;
@@ -62,6 +84,7 @@ bool playing() {
         readable(field<uintptr_t>(base,profile::theater_pointer)+0x9845e0,4);
 }
 void release_session() {
+    animations::end();
     editor::end();
     if(owned && readable(session+0x68abbe)) {
         field<bool>(session,0x68abbe)=old_native_hidden;
@@ -71,6 +94,7 @@ void release_session() {
     input_owned=false; owned=false; session=0; repositioning=false;manual_lens=false;
     menu_open=false;exit_dialog=false; extras.clear();state.editing_camera=false;
     movement.reset();
+    path_clock.reset();camera_counter=movement_counter=0;render_tick=0;
     lift_keys=0;
 }
 std::vector<marker> read_cameras() {
@@ -153,6 +177,11 @@ void execute(request r) {
         native_calls::invoke(function<void(*)(int)>(profile::switch_view),(field<int>(session,0x7dae60)+1)%3);
         set_diagnostic_stage("backend_update");log_message("F3 native setter returned");break;
     case action::free_camera: free_mode(1); break;
+    case action::cycle_camera_next:case action::cycle_camera_previous: {
+        int mode=next_camera_mode(field<int>(session,0x7dae64),r.type==action::cycle_camera_next?1:-1);
+        if(mode==2 && cams.size()<2){message="Place at least two cameras for dolly playback";break;}
+        free_mode(mode);break;
+    }
     case action::dolly_camera:
         if(cams.size()<2) {message="Place at least two cameras for dolly playback";break;}
         free_mode(2); break;
@@ -220,6 +249,9 @@ void execute(request r) {
         function<void(*)(float)>(profile::set_timescale)(speed);
         message="Playback speed changed"; break;
     }
+    case action::speed_minimum:case action::speed_normal:case action::speed_maximum:
+        function<void(*)(float)>(profile::set_timescale)(r.type==action::speed_minimum?.01f:r.type==action::speed_maximum?10.f:1.f);
+        message="Playback speed preset applied";break;
     case action::first_camera:
         if(cams.size()<2) {message="Place at least two cameras first";break;}
         free_mode(1); command("demo_switchdollycammarker 0"); free_mode(2);
@@ -228,6 +260,7 @@ void execute(request r) {
     case action::exit_film:
         menu_open=false;exit_dialog=false;capture::stop();
         command("LobbyStopDemo");message="Requested exit to main menu";break;
+    case action::clear_bodies:message="Clear bodies is a private-match action";break;
     case action::save_path: save_path();break;
     case action::load_path: load_path();break;
     default: break;
@@ -235,9 +268,26 @@ void execute(request r) {
 }
 void update() {
     std::lock_guard lock(mutex);
+    apply_requested_options();
+    if(preferences_dirty && GetTickCount64()>=preferences_due)save_preferences();
+    if(close_edit_requested.exchange(false))state.editing_camera=false;
+    auto work=take_requests();
+    if(valid && applied_hold_weapons!=int(settings.hold_weapons)) {
+        command(settings.hold_weapons?"set mvm_holdgun 1":"set mvm_holdgun 0");applied_hold_weapons=int(settings.hold_weapons);
+    }
+    if(valid && applied_weapon_drops!=int(settings.native_weapon_drops)) {
+        command(settings.native_weapon_drops?"set mvm_weapon_drops 1":"set mvm_weapon_drops 0");applied_weapon_drops=int(settings.native_weapon_drops);
+    }
+    if(valid && applied_release_weapons!=int(settings.release_weapons)) {
+        command(settings.release_weapons?"set mvm_releasegun 1":"set mvm_releasegun 0");applied_release_weapons=int(settings.release_weapons);
+    }
+    if(valid && applied_release_delay!=settings.weapon_release_delay) {
+        command("set mvm_releasegun_delay "+std::to_string(settings.weapon_release_delay));applied_release_delay=settings.weapon_release_delay;
+    }
     if(!playing()) {
+        for(const auto& request:work)if(request.type==action::clear_bodies)command("botmod_clearbodies");
         if(owned) release_session();
-        pending.clear(); state.playing=false; return;
+        state.playing=false;visible_state.publish(state);return;
     }
     uintptr_t new_session=field<uintptr_t>(base,profile::theater_pointer);
     if(session!=new_session) {
@@ -254,6 +304,7 @@ void update() {
         for(const auto& camera:read_cameras())extras[camera.tick]=current_lens;
         state.selected=-1;
         editor::begin(session);
+        animations::begin();
     }
     field<bool>(session,0x68abbe)=true;
     bool capture=menu_open.load() || exit_dialog.load();
@@ -265,16 +316,17 @@ void update() {
     state.eye=field<vec3>(session,0x981a68);state.angles=field<vec3>(session,0x981a74);
     state.cameras=read_cameras();
     state.hovered=hovered_marker(state.cameras,state.eye,state.angles,float(current_lens.fov));
-    auto work=std::move(pending);pending.clear();
     for(auto& r:work) execute(r);
     editor::update();
+    animations::update(state.paused);
     state.available=valid; state.playing=true; state.speed=field<float>(session,8);
     state.view=field<int>(session,0x7dae60);state.free_mode=field<int>(session,0x7dae64);
     state.game_hud=!field<bool>(session,0x68abbd);state.native_hud=!field<bool>(session,0x68abbe);
     state.cameras=read_cameras();
-    state.optics=state.view==2 && state.free_mode==2 && !extras.empty() && !manual_lens?sample_lens(state.cameras,state.tick):current_lens;
+    state.optics=state.view==2 && state.free_mode==2 && !extras.empty() && !manual_lens?sample_lens(state.cameras,render_tick):current_lens;
     state.repositioning=repositioning;
     state.message=message;
+    visible_state.publish(state);
 }
 void main_frame() {set_diagnostic_stage("backend_update");update();set_diagnostic_stage("idle");main_original();}
 void camera_frame() {
@@ -284,10 +336,13 @@ void camera_frame() {
         std::lock_guard lock(mutex);
         uintptr_t p=field<uintptr_t>(base,profile::theater_pointer);
         if(p==session) {
+            double step=elapsed_ms(camera_counter);auto recording=capture::get_status();
+            if(recording.fixed_step)step=1000./capture::get_settings().fps;
+            render_tick=path_clock.sample(field<int>(base,profile::tick),function<bool(*)()>(profile::demo_paused)(),field<float>(p,8),step);
             lens value=current_lens;
             if(field<int>(p,0x7dae64)==2 && !extras.empty() && !manual_lens) {
                 auto cams=read_cameras();
-                value=sample_lens(cams,field<int>(base,profile::tick));
+                value=sample_lens(cams,render_tick);
             }
             field<float>(p,0x981a7c)=value.roll;
             field<double>(base,profile::fov)=value.fov;
@@ -303,15 +358,18 @@ void camera_frame() {
     set_diagnostic_stage("camera_original");native_calls::invoke(camera_original);set_diagnostic_stage("idle");
 }
 void camera_angles_transfer(const void* source,void* destination) {
-    // BO3 has finished its own dolly update at this call site. Curve only the
-    // position before the renderer copies it. Marker +20 is a direction vector,
-    // not Euler angles; BO3 must retain control of orientation and roll.
+    // BO3 has finished its dolly update. Apply the continuous curve immediately
+    // before angle-to-axis conversion. Marker +20 is a world look-at point.
     if(valid && session && source==reinterpret_cast<const void*>(session+0x981a74)) {
         std::lock_guard lock(mutex);
         if(field<int>(session,0x7dae60)==2 && field<int>(session,0x7dae64)==2) {
             auto cameras=read_cameras();
-            if(auto position=sample_dolly_position(cameras,field<int>(base,profile::tick)))
+            if(auto position=sample_dolly_position(cameras,render_tick))
                 field<vec3>(session,0x981a68)=*position;
+            if(auto angles=sample_dolly_angles(cameras,render_tick)){
+                if(manual_lens)angles->z=current_lens.roll;
+                field<vec3>(session,0x981a74)=*angles;
+            }else if(!manual_lens && !extras.empty())field<float>(session,0x981a7c)=sample_lens(cameras,render_tick).roll;
         }
     }
     angles_transfer_original(source,destination);
@@ -325,9 +383,11 @@ void camera_movement(void* cmd) {
         movement.reset();native_calls::invoke(movement_original,cmd);return;
     }
     vec3 before=field<vec3>(p,0x981a68),angles=field<vec3>(p,0x981a74);
-    bool capture=menu_open.load();
+    bool capture=menu_open.load() || exit_dialog.load() || native_menu_active();
     if(capture)lift_keys=0;
     unsigned lift=lift_keys.load();
+    double step=elapsed_ms(movement_counter)*.001;
+    if(settings.responsive_camera)field<vec3>(p,0x981a80)={};
     set_diagnostic_stage("camera_movement");
     if(lift && !capture && readable(reinterpret_cast<uintptr_t>(cmd),16)) {
         // Temporarily map Q/E into the engine's keyboard/controller vertical
@@ -336,8 +396,19 @@ void camera_movement(void* cmd) {
         native_calls::invoke(movement_original,cmd);
     } else native_calls::invoke(movement_original,cmd);
     if(field<int>(p,0x7dae60)!=2 || field<int>(p,0x7dae64)!=mode) {movement.reset();set_diagnostic_stage("idle");return;}
-    capture=menu_open.load();
-    field<vec3>(p,0x981a68)=movement.apply(before,field<vec3>(p,0x981a68),capture?0.f:settings.move_speed);
+    capture=menu_open.load() || exit_dialog.load() || native_menu_active();
+    float speed=modified_camera_speed(settings.move_speed,settings.fast_multiplier,settings.slow_multiplier,
+        (GetAsyncKeyState(VK_SHIFT)&0x8000)!=0,(GetAsyncKeyState(VK_CONTROL)&0x8000)!=0);
+    auto after=field<vec3>(p,0x981a68);
+    if(settings.responsive_camera){
+        vec3 direction=field<vec3>(p,0x981a80);double length=std::sqrt(dot(direction,direction));
+        float rate=300;auto speed_setting=readable(base+0x19c2a310,8)?field<uintptr_t>(base,0x19c2a310):0;
+        if(readable(speed_setting+40,4)){float native=field<float>(speed_setting,40);if(std::isfinite(native) && native>0 && native<100000)rate=native;}
+        double distance=length>.000001?rate*step/length:0;
+        after={before.x+float(direction.x*distance),before.y+float(direction.y*distance),before.z+float(direction.z*distance)};
+        field<vec3>(p,0x981a80)={};
+    }
+    field<vec3>(p,0x981a68)=movement.apply(before,after,capture?0.f:speed);
     if(capture) {
         field<vec3>(p,0x981a74)=angles;
         field<vec3>(p,0x981a80)={};
@@ -373,6 +444,7 @@ bool initialize_backend() {
     auto status=MH_Initialize();
     if(status!=MH_OK && status!=MH_ERROR_ALREADY_INITIALIZED)return false;
     editor::initialize(base);
+    animations::initialize(base);
     if(MH_CreateHook(reinterpret_cast<void*>(base+profile::main_frame),main_frame,reinterpret_cast<void**>(&main_original))!=MH_OK)return false;
     if(MH_CreateHook(reinterpret_cast<void*>(base+profile::camera_frame.rva),camera_frame,reinterpret_cast<void**>(&camera_original))!=MH_OK) {
         MH_RemoveHook(reinterpret_cast<void*>(base+profile::main_frame));return false;
@@ -394,17 +466,19 @@ bool initialize_backend() {
     MH_EnableHook(reinterpret_cast<void*>(base+profile::camera_movement.rva));
     MH_EnableHook(reinterpret_cast<void*>(base+profile::camera_angles_transfer.rva));
     MH_EnableHook(reinterpret_cast<void*>(base+profile::main_frame));
-    {std::lock_guard lock(mutex);state.available=true;}
+    {std::lock_guard lock(mutex);state.available=true;visible_state.publish(state);}
+    playback_helper::initialize(base,[](const char* text){log_message(text);});
     log_message("Exact game build verified; theater backend enabled");return true;
 }
 void shutdown_backend() {
+    playback_helper::shutdown();
     if(base) {
         MH_DisableHook(reinterpret_cast<void*>(base+profile::main_frame));
         MH_DisableHook(reinterpret_cast<void*>(base+profile::camera_frame.rva));
         MH_DisableHook(reinterpret_cast<void*>(base+profile::camera_movement.rva));
         MH_DisableHook(reinterpret_cast<void*>(base+profile::camera_angles_transfer.rva));
     }
-    std::lock_guard lock(mutex);valid=false;release_session();editor::shutdown();
+    std::lock_guard lock(mutex);apply_requested_options();save_preferences();valid=false;release_session();state.playing=false;visible_state.publish(state);editor::shutdown();
     if(patched) {
         DWORD old;auto reset=reinterpret_cast<void*>(base+profile::roll_reset);
         if(VirtualProtect(reset,10,PAGE_EXECUTE_READWRITE,&old)) {
@@ -413,29 +487,37 @@ void shutdown_backend() {
         patched=false;
     }
 }
-void enqueue(action type,int index) {std::lock_guard lock(mutex);if(state.playing && pending.size()<64)pending.push_back({type,index});}
-void enqueue_lens(lens value) {std::lock_guard lock(mutex);if(state.playing && pending.size()<64)pending.push_back({action::apply,-1,value});}
-void enqueue_roll(float wheel) {std::lock_guard lock(mutex);if(state.playing && state.view==2 && pending.size()<64)pending.push_back({action::apply,-1,{},wheel});}
-void enqueue_zoom(float wheel) {std::lock_guard lock(mutex);if(state.playing && state.view==2 && pending.size()<64)pending.push_back({action::apply,-1,{},wheel,true});}
-snapshot current_snapshot(){std::lock_guard lock(mutex);return state;}
-options current_options(){std::lock_guard lock(mutex);return settings;}
-void set_options(options value){std::lock_guard lock(mutex);value.move_speed=camera_speed(value.move_speed);settings=value;}
+void enqueue(action type,int index) {auto view=visible_state.read();std::lock_guard lock(requests_mutex);if((view.playing || (view.available && type==action::clear_bodies)) && pending.size()<64)pending.push_back({type,index});}
+void enqueue_lens(lens value) {auto view=visible_state.read();std::lock_guard lock(requests_mutex);if(view.playing && pending.size()<64)pending.push_back({action::apply,-1,value});}
+void enqueue_roll(float wheel) {auto view=visible_state.read();std::lock_guard lock(requests_mutex);if(view.playing && view.view==2 && pending.size()<64)pending.push_back({action::apply,-1,{},wheel});}
+void enqueue_zoom(float wheel) {auto view=visible_state.read();std::lock_guard lock(requests_mutex);if(view.playing && view.view==2 && pending.size()<64)pending.push_back({action::apply,-1,{},wheel,true});}
+snapshot current_snapshot(){auto view=visible_state.read();if(close_edit_requested)view.editing_camera=false;return view;}
+options current_options(){return ui_controls.read();}
+void load_options(){std::lock_guard lock(mutex);settings=preferences::load();ui_controls.initialize(settings);}
+bool native_menu_active(){return base && readable(base+profile::key_catchers,4) && (field<unsigned>(base,profile::key_catchers)&0x10u)!=0;}
+void set_options(options value){ui_controls.request(preferences::sanitize(value));}
 void set_camera_lift_key(bool up,bool held) {
     unsigned bit=up?1u:2u;
     if(held)lift_keys.fetch_or(bit);else lift_keys.fetch_and(~bit);
 }
 void clear_camera_lift(){lift_keys=0;}
-void close_camera_editor(){std::lock_guard lock(mutex);state.editing_camera=false;}
+void close_camera_editor(){close_edit_requested=true;}
 namespace editor {
 config capture_controls(scene values) {
     std::lock_guard lock(mutex);config c;c.values=std::move(values);c.move_speed=settings.move_speed;c.fov=float(current_lens.fov);
     c.timescale=session?field<float>(session,8):1;c.roll_step=settings.roll_step;c.fov_step=settings.fov_step;
+    c.fast_multiplier=settings.fast_multiplier;c.slow_multiplier=settings.slow_multiplier;
     c.seek_seconds=settings.seek_seconds;c.markers=settings.show_markers;c.help=settings.show_help;c.menu_background=settings.menu_background;return c;
 }
 void apply_controls(const config& c) {
     // Editor requests execute only during backend_update on the native thread.
-    settings.move_speed=camera_speed(c.move_speed);settings.roll_step=c.roll_step;settings.fov_step=c.fov_step;
-    settings.seek_seconds=c.seek_seconds;settings.show_markers=c.markers;settings.show_help=c.help;settings.menu_background=c.menu_background;
+    settings=ui_controls.merge(settings,[&](options& value){
+        value.move_speed=camera_speed(c.move_speed);value.roll_step=c.roll_step;value.fov_step=c.fov_step;
+        value.fast_multiplier=c.fast_multiplier;value.slow_multiplier=c.slow_multiplier;
+        value.seek_seconds=c.seek_seconds;value.show_markers=c.markers;value.show_help=c.help;value.menu_background=c.menu_background;
+        value=preferences::sanitize(value);
+    });
+    preferences_dirty=true;preferences_due=GetTickCount64()+300;
     auto optics=current_lens;optics.fov=c.fov;set_lens(optics);manual_lens=true;
     if(session && std::isfinite(c.timescale))function<void(*)(float)>(profile::set_timescale)(std::clamp(c.timescale,.01f,10.f));
 }

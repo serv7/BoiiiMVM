@@ -6,5 +6,6 @@
 - [nlohmann/json](https://github.com/nlohmann/json) is used under MIT (see `src/vendor/JSON-LICENSE.txt`). The [ReShade add-on API](https://github.com/crosire/reshade) headers are under BSD-3-Clause (see `src/vendor/reshade/LICENSE.md`).
 - The runtime package bundles an FFmpeg shared build for encoding. Its adjacent `MVM/Theater/LICENSE.txt` contains the LGPL notice; [FFmpeg source](https://github.com/FFmpeg/FFmpeg) and [Windows build provider](https://github.com/BtbN/FFmpeg-Builds) are linked for attribution. ReShade binaries are not bundled.
 - Screenshots were supplied by the project owner and document their own BO3 gameplay and editor scenes.
+- The death-animation workflow draws on [T6MVM](https://github.com/Amyst82/t6mvm) and the owner's modified T6MVM source. The 70 bundled reference GIFs were supplied from that local library, which identifies Console V4 as their source. They show BO2 animations; they are not verified BO3 previews.
 
 The theater plugin code and the bundled bot GSC scripts are provided in this repository and GitHub's generated source downloads. No BO3 game executable or game data are part of this release.

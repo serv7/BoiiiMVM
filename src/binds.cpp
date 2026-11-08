@@ -12,12 +12,14 @@ constexpr size_t count=size_t(id::count);
 const char* names[count]={"Open menu","Toggle controls","Toggle game HUD","Cycle camera view",
     "Place / edit camera","Delete all cameras","Seek backward","Seek forward",
     "Increase timescale","Decrease timescale","Play / pause","First camera / dolly",
-    "Camera down","Camera up","Dolly camera","Edit camera",
-    "Roll left","Roll right","Zoom in","Zoom out","Start / stop recording","Exit film"};
+    "Camera down","Camera up","Cycle camera mode forward","Cycle camera mode backward",
+    "Roll left","Roll right","Zoom in","Zoom out","Start / stop recording","Exit film",
+    "Minimum timescale (0.01x)","Normal timescale (1x)","Maximum timescale (10x)","Clear bodies (private match)"};
 std::array<chord,count> defaults_value={{{VK_TAB,0},{VK_F4,0},{VK_F2,0},{VK_F3,0},
     {'F',0},{'L',0},{VK_LEFT,0},{VK_RIGHT,0},{VK_UP,0},{VK_DOWN,0},
     {VK_SPACE,0},{'M',control},{'Q',0},{'E',0},{mouse_left,0},{mouse_right,0},
-    {wheel_down,0},{wheel_up,0},{wheel_up,control},{wheel_down,control},{VK_F5,0},{VK_F10,0}}};
+    {wheel_down,0},{wheel_up,0},{wheel_up,control},{wheel_down,control},{VK_F5,0},{VK_F10,0},
+    {VK_OEM_MINUS,shift},{'0',0},{VK_OEM_PLUS,shift},{VK_F6,0}}};
 std::array<chord,count> values=defaults_value;
 std::recursive_mutex guard;
 int waiting=-1;
@@ -33,13 +35,19 @@ void load(){
     try {
         std::ifstream input(path);if(!input)return;
         nlohmann::json data;input>>data;
-        if(!data.is_object() || !data.contains("binds") || !data["binds"].is_array() || data["binds"].size()!=count)return;
-        std::array<chord,count> next{};
-        for(size_t i=0;i<count;++i) {
+        if(!data.is_object() || !data.contains("binds") || !data["binds"].is_array() || data["binds"].size()<22 || data["binds"].size()>count)return;
+        std::array<chord,count> next=defaults_value;
+        const size_t loaded=data["binds"].size();
+        for(size_t i=0;i<loaded;++i) {
             auto& item=data["binds"][i];next[i]={item.at("key").get<int>(),item.at("modifiers").get<int>()};
             if(!valid(next[i]) || ((i==size_t(id::lift_down) || i==size_t(id::lift_up)) &&
                 (next[i].key==wheel_up || next[i].key==wheel_down)))return;
             for(size_t j=0;j<i;++j)if(next[i].key==next[j].key && next[i].modifiers==next[j].modifiers)return;
+        }
+        // Preserve old custom bindings when new defaults happen to use the same chord.
+        for(size_t i=loaded;i<count;++i) {
+            auto used=[&](chord c){for(size_t j=0;j<i;++j)if(next[j].key==c.key && next[j].modifiers==c.modifiers)return true;return false;};
+            if(used(next[i]))for(int key=VK_F6;key<=VK_F24;++key)if(!used({key,shift|control})){next[i]={key,shift|control};break;}
         }
         values=next;
     } catch(...) {values=defaults_value;}
@@ -77,10 +85,12 @@ std::string label(id action){
     if(c.key==mouse_left)value+="LMB";else if(c.key==mouse_right)value+="RMB";
     else if(c.key==wheel_up)value+="WHEEL UP";else if(c.key==wheel_down)value+="WHEEL DOWN";
     else if(c.key>='A' && c.key<='Z')value+=char(c.key);
+    else if(c.key>='0' && c.key<='9')value+=char(c.key);
     else if(c.key>=VK_F1 && c.key<=VK_F24)value+="F"+std::to_string(c.key-VK_F1+1);
     else switch(c.key){case VK_TAB:value+="TAB";break;case VK_SPACE:value+="SPACE";break;
         case VK_LEFT:value+="LEFT";break;case VK_RIGHT:value+="RIGHT";break;
         case VK_UP:value+="UP";break;case VK_DOWN:value+="DOWN";break;
+        case VK_OEM_PLUS:value+="+";break;case VK_OEM_MINUS:value+="-";break;
         default:value+="KEY "+std::to_string(c.key);break;}
     return value;
 }
