@@ -1,5 +1,6 @@
 #include "editor.hpp"
 #include "backend.hpp"
+#include "memory_regions.hpp"
 #include <Windows.h>
 #include <MH/MinHook.h>
 #include <mutex>
@@ -38,10 +39,7 @@ constexpr unsigned char fog_code[]={0x8b,0x02,0x89,0x01,0x8b,0x42,0x04,0x89,0x41
 constexpr unsigned char blood_code[]={136,132,26,160,100,19,0,68,136,188,26,162,100,19,0,68,136,164,26,161,100,19,0};
 template<class T> T& at(uintptr_t p,size_t offset=0) {return *reinterpret_cast<T*>(p+offset);}
 bool accessible(uintptr_t p,size_t n,bool write=false) {
-    MEMORY_BASIC_INFORMATION m{};
-    if(!p || !VirtualQuery(reinterpret_cast<void*>(p),&m,sizeof(m)) || m.State!=MEM_COMMIT ||
-        (m.Protect&(PAGE_NOACCESS|PAGE_GUARD)) || n>m.RegionSize || p+n>uintptr_t(m.BaseAddress)+m.RegionSize)return false;
-    return !write || (m.Protect&(PAGE_READWRITE|PAGE_WRITECOPY|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY));
+    return write?memory::writable(p,n):memory::readable(p,n);
 }
 void note(std::string message) {state.message=std::move(message);log_message("Editor: "+state.message);}
 void* copy_fog(void* destination,const void* source) {

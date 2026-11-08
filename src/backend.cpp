@@ -9,6 +9,7 @@
 #include "published_value.hpp"
 #include "controls_mailbox.hpp"
 #include "playback_helper.hpp"
+#include "memory_regions.hpp"
 #include <MH/MinHook.h>
 #include <mutex>
 #include <deque>
@@ -59,12 +60,7 @@ unsigned char reset_bytes[10]={0xc7,0x80,0x7c,0x1a,0x98,0,0,0,0,0};
 bool patched=false;
 std::string message="Theater controls ready";
 template<class T> T& field(uintptr_t p,size_t offset) { return *reinterpret_cast<T*>(p+offset); }
-bool readable(uintptr_t p,size_t n=1) {
-    MEMORY_BASIC_INFORMATION m{};
-    return p && VirtualQuery(reinterpret_cast<void*>(p),&m,sizeof(m)) &&
-        m.State==MEM_COMMIT && !(m.Protect&(PAGE_NOACCESS|PAGE_GUARD)) &&
-        p+n<=reinterpret_cast<uintptr_t>(m.BaseAddress)+m.RegionSize;
-}
+bool readable(uintptr_t p,size_t n=1) {return memory::readable(p,n);}
 template<class F> F function(profile::fingerprint f) { return reinterpret_cast<F>(base+f.rva); }
 void command(const std::string& text) {
     function<void(*)(int,int,const char*,bool)>(profile::execute_command)(0,0,text.c_str(),false);

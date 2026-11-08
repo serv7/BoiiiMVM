@@ -151,8 +151,10 @@ LRESULT CALLBACK wndproc(HWND hwnd,UINT msg,WPARAM w,LPARAM l) {
         if(key==theater::binds::get(theater::binds::id::lift_down).key)theater::set_camera_lift_key(false,false);
         if(key==theater::binds::get(theater::binds::id::lift_up).key)theater::set_camera_lift_key(true,false);
     }
-    bool is_theater=theater::current_snapshot().playing && !theater::native_menu_active();
-    if(!theater::current_snapshot().playing && (msg==WM_KEYDOWN || msg==WM_SYSKEYDOWN) && w<256 && !(l&(1LL<<30)) &&
+    // One state copy per message: it includes the marker list.
+    const auto view=theater::current_snapshot();
+    bool is_theater=view.playing && !theater::native_menu_active();
+    if(!view.playing && (msg==WM_KEYDOWN || msg==WM_SYSKEYDOWN) && w<256 && !(l&(1LL<<30)) &&
         theater::binds::match({int(w),theater::binds::modifiers()})==theater::binds::id::clear_bodies && capture_key(w)) {
         swallowed[w]=true;return 0;
     }
@@ -194,7 +196,7 @@ LRESULT CALLBACK wndproc(HWND hwnd,UINT msg,WPARAM w,LPARAM l) {
             auto bind=theater::binds::match({msg==WM_LBUTTONDOWN?theater::binds::mouse_left:theater::binds::mouse_right,theater::binds::modifiers()});
             if(dispatch_binding(bind,0))return 0;
         }
-        if(theater::current_snapshot().view==2 && (msg==WM_LBUTTONUP || msg==WM_RBUTTONUP))return 0;
+        if(view.view==2 && (msg==WM_LBUTTONUP || msg==WM_RBUTTONUP))return 0;
     }
     if(is_theater && theater::menu_open && (msg==WM_LBUTTONDOWN || msg==WM_RBUTTONDOWN || msg==WM_MOUSEWHEEL)){
         int key=msg==WM_LBUTTONDOWN?theater::binds::mouse_left:msg==WM_RBUTTONDOWN?theater::binds::mouse_right:
@@ -279,7 +281,7 @@ namespace theater {
 void render_after_reshade(ID3D11RenderTargetView* output){render_overlay(output);}
 void open_game_menu(){if(window && native_menu_message)PostMessageW(window,native_menu_message,0,0);}
 }
-extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test9";}
+extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test10";}
 extern "C" __declspec(dllexport) void post_unpack() {
     if(init_thread.joinable())return;
     init_thread=std::thread([] {
