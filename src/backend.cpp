@@ -48,6 +48,7 @@ void (*angles_transfer_original)(const void*,void*)=nullptr;
 void (*movement_original)(void*)=nullptr;
 movement_scaler movement;
 demo_clock path_clock;double render_tick=0;LONGLONG camera_counter=0,movement_counter=0;
+seek_controller seeker;float seek_restore_speed=1;bool seek_restore_paused=false;LONGLONG seek_counter=0;
 double elapsed_ms(LONGLONG& previous) {
     LARGE_INTEGER now,frequency;QueryPerformanceCounter(&now);QueryPerformanceFrequency(&frequency);
     double result=previous?double(now.QuadPart-previous)*1000./frequency.QuadPart:1000./60.;previous=now.QuadPart;
@@ -233,26 +234,38 @@ void execute(request r) {
     case action::seek_back: case action::seek_forward: case action::seek_to: {
         manual_lens=false;
         int amount=std::max(1,int(settings.seek_seconds*1000));
+        // Steps go from where a running seek is heading, so repeated presses add up.
+        int from=seeker.active?seeker.target:state.tick;
         // BO3's optional argument is an absolute demo tick, not a duration.
-        int target=r.type==action::seek_to?r.index:std::max(0,state.tick+(r.type==action::seek_back?-amount:amount));
+        int target=r.type==action::seek_to?r.index:std::max(0,from+(r.type==action::seek_back?-amount:amount));
         if(state.end_tick>state.start_tick)target=std::clamp(target,state.start_tick,state.end_tick-1);
-        if(target!=state.tick)command(std::string(target<state.tick?"demo_back ":"demo_forward ")+std::to_string(target));
+        if(target==state.tick && !seeker.active)break;
+        // The engine jump can land short of the target; seek_controller plays the rest (see theater_logic.hpp).
+        // What to go back to afterwards: taken from before the first of back-to-back seeks.
+        if(!seeker.active){seek_restore_speed=field<float>(session,8);seek_restore_paused=state.paused;}
+        command(std::string(target<state.tick?"demo_back ":"demo_forward ")+std::to_string(target));
+        seeker.start(target,state.tick,seek_restore_paused,seek_restore_speed);
+        message="Seeking...";
         break;
     }
     case action::speed_down: case action::speed_up: {
+        seeker.cancel(); // the user takes over the speed
         float speed=step_speed(field<float>(session,8),r.type==action::speed_up?1:-1);
         // Bypass only the command's 0.1 lower bound. Use the native setter for all speeds.
         function<void(*)(float)>(profile::set_timescale)(speed);
         message="Playback speed changed"; break;
     }
     case action::speed_minimum:case action::speed_normal:case action::speed_maximum:
+        seeker.cancel();
         function<void(*)(float)>(profile::set_timescale)(r.type==action::speed_minimum?.01f:r.type==action::speed_maximum?10.f:1.f);
         message="Playback speed preset applied";break;
     case action::first_camera:
         if(cams.size()<2) {message="Place at least two cameras first";break;}
         free_mode(1); command("demo_switchdollycammarker 0"); free_mode(2);
         message="Jumped to first camera / Dolly"; break;
-    case action::pause: command("demo_pause"); break;
+    case action::pause:
+        if(seeker.active){seeker.cancel();function<void(*)(float)>(profile::set_timescale)(seek_restore_speed);}
+        command("demo_pause"); break;
     case action::exit_film:
         menu_open=false;exit_dialog=false;capture::stop();
         command("LobbyStopDemo");message="Requested exit to main menu";break;
@@ -261,6 +274,66 @@ void execute(request r) {
     case action::load_path: load_path();break;
     default: break;
     }
+}
+// Once per frame while a seek runs: carry out what seek_controller asks for.
+void drive_seek() {
+    if(!seeker.active){seek_counter=0;return;}
+    auto step=seeker.frame(state.tick,state.end_tick,state.paused,elapsed_ms(seek_counter));
+    auto set_speed=function<void(*)(float)>(profile::set_timescale);
+    switch(step.type) {
+    case seek_step::jump:
+        command("demo_back "+std::to_string(step.tick));set_speed(step.speed);break;
+    case seek_step::set_speed:
+        set_speed(step.speed);
+        if(step.toggle_pause)command("demo_pause");
+        break;
+    case seek_step::finish:
+        set_speed(step.speed);
+        if(step.toggle_pause)command("demo_pause");
+        message="Seek done";break;
+    default: break;
+    }
+}
+// mvm_corpse.csc keeps its last hold-gun events in the dvar mvm_corpse_trace as
+// "N tTIME text | N tTIME text | ". Copy new ones into the log so a test leaves a record.
+void log_script_trace() {
+    static uintptr_t entry=0;static ULONGLONG due=0;static long last=0;
+    const ULONGLONG now=GetTickCount64();
+    if(now<due)return;
+    due=now+250;
+    static const uint32_t hash=editor::hash_name("mvm_corpse_trace");
+    constexpr uintptr_t pool=397173280,pool_count=397173196;constexpr size_t stride=160;
+    if(!entry || !readable(entry,stride) || field<uint32_t>(entry,0)!=hash) {
+        entry=0;due=now+2000; // the script creates the dvar when a film starts
+        if(!readable(base+pool_count,4))return;
+        int count=field<int>(base,pool_count);
+        if(count<=0 || count>20000 || !readable(base+pool,size_t(count)*stride))return;
+        for(int i=0;i<count && !entry;++i)if(field<uint32_t>(base+pool+size_t(i)*stride,0)==hash)entry=base+pool+size_t(i)*stride;
+        if(!entry)return;
+        due=now+250;
+    }
+    if(field<uint32_t>(entry,28)!=8)return; // string dvars only
+    const uintptr_t text=field<uintptr_t>(entry,40);
+    if(text<0x10000)return;
+    // The string can end right before an unreadable page: copy in small pieces.
+    std::string value;char piece[64];bool ended=false;
+    while(!ended && value.size()<4096) {
+        SIZE_T got=0;
+        if(!ReadProcessMemory(GetCurrentProcess(),reinterpret_cast<const void*>(text+value.size()),piece,sizeof(piece),&got) || !got)break;
+        for(SIZE_T i=0;i<got;++i){if(!piece[i]){ended=true;break;}value.push_back(piece[i]);}
+    }
+    if(!ended)return;
+    long highest=0;std::vector<std::pair<long,std::string>> events;
+    for(size_t at=0;at<value.size();) {
+        size_t end=value.find(" | ",at);if(end==std::string::npos)end=value.size();
+        std::string item=value.substr(at,end-at);at=end+3;
+        char* rest=nullptr;long number=std::strtol(item.c_str(),&rest,10);
+        if(number<=0 || !rest || *rest!=' ')continue;
+        highest=std::max(highest,number);events.emplace_back(number,std::string(rest+1));
+    }
+    if(highest<last)last=0; // a new film started the script's count again
+    for(const auto& event:events)if(event.first>last)log_message("Hold gun: #"+std::to_string(event.first)+" "+event.second);
+    last=std::max(last,highest);
 }
 void update() {
     std::lock_guard lock(mutex);
@@ -283,6 +356,7 @@ void update() {
     if(!playing()) {
         for(const auto& request:work)if(request.type==action::clear_bodies)command("botmod_clearbodies");
         if(owned) release_session();
+        seeker.cancel();
         state.playing=false;visible_state.publish(state);return;
     }
     uintptr_t new_session=field<uintptr_t>(base,profile::theater_pointer);
@@ -313,8 +387,11 @@ void update() {
     state.cameras=read_cameras();
     state.hovered=hovered_marker(state.cameras,state.eye,state.angles,float(current_lens.fov));
     for(auto& r:work) execute(r);
+    drive_seek();
+    state.seek_target=seeker.active?seeker.target:-1;
     editor::update();
     animations::update(state.paused);
+    log_script_trace();
     state.available=valid; state.playing=true; state.speed=field<float>(session,8);
     state.view=field<int>(session,0x7dae60);state.free_mode=field<int>(session,0x7dae64);
     state.game_hud=!field<bool>(session,0x68abbd);state.native_hud=!field<bool>(session,0x68abbe);

@@ -62,7 +62,9 @@ void transport(const snapshot& state,const options& settings,float scale) {
     draw->AddText({origin.x+width-14*scale-label_width,origin.y+38*scale},white,lens_label);
     if(settings.show_help)text(14,66,muted,"Wheel Roll   Ctrl + Wheel FOV   Camera controls in Binds");
     else text(14,66,muted,"BO3 FILM EDITOR");
-    char speed[32];std::snprintf(speed,sizeof(speed),"%s  %.3fx",state.paused?"PAUSED":"PLAYING",state.speed);
+    char speed[32];
+    if(state.seek_target>=0)std::snprintf(speed,sizeof(speed),"SEEKING...");
+    else std::snprintf(speed,sizeof(speed),"%s  %.3fx",state.paused?"PAUSED":"PLAYING",state.speed);
     float speed_width=ImGui::CalcTextSize(speed).x;
     draw->AddText({origin.x+width-14*scale-speed_width,origin.y+66*scale},amber,speed);
     float left=14*scale,right=width-78*scale,bar_width=right-left;
@@ -76,7 +78,7 @@ void transport(const snapshot& state,const options& settings,float scale) {
         target=timeline_tick((ImGui::GetIO().MousePos.x-origin.x-left)/bar_width,state.start_tick,state.end_tick);
     }
     if(dragging && ImGui::IsItemDeactivated()) {enqueue(action::seek_to,target);dragging=false;}
-    int shown=dragging?target:state.tick;
+    int shown=dragging?target:state.seek_target>=0?state.seek_target:state.tick;
     float playhead=origin.x+left+bar_width*timeline_fraction(shown,state.start_tick,state.end_tick);
     draw->AddRectFilled({origin.x+left,origin.y+bar_y},{origin.x+right,origin.y+bar_y+bar_h},IM_COL32(8,8,8,255));
     draw->AddRectFilled({origin.x+left+scale,origin.y+bar_y+scale},{playhead,origin.y+bar_y+bar_h-scale},IM_COL32(95,91,67,145));

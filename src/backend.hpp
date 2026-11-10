@@ -12,6 +12,7 @@ enum class action { toggle_game_hud,toggle_ui,cycle_view,free_camera,dolly_camer
 struct snapshot {
     bool available=false,playing=false,paused=false,repositioning=false,game_hud=true,native_hud=true,editing_camera=false;
     int tick=0,start_tick=0,end_tick=0,view=0,free_mode=0,hovered=-1,selected=-1;
+    int seek_target=-1; // where a running seek is heading, -1 when none
     float speed=1;
     vec3 eye,angles;
     lens optics;

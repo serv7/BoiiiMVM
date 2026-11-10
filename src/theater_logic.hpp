@@ -16,6 +16,64 @@ inline float timeline_fraction(int tick,int start,int end) {
 inline int timeline_tick(float fraction,int start,int end) {
     return end>start?int(start+std::clamp(fraction,0.f,1.f)*(double(end)-start)):start;
 }
+// Getting to an exact demo tick, the way T6MVM's DemoSeek does it in BO2. The engine's demo_back /
+// demo_forward land on its own snapshot points, which can be short of the target (or barely move
+// forward into parts of the film not played yet). So after the jump the film plays fast and slows
+// down onto the target; if it ended up past the target it jumps back again (a few times at most).
+struct seek_step {
+    enum kind { none, jump, set_speed, finish } type=none;
+    int tick=0;               // jump: target tick
+    float speed=1;            // set_speed / finish: playback speed to set
+    bool toggle_pause=false;  // send one demo_pause (it toggles)
+};
+class seek_controller {
+    int settle=0,frames=0,stalled=0,jumps=0,last=0,unpause_wait=0;
+    float restore=1;bool pause_at_end=false,unpause_sent=false;
+public:
+    // 10x is the game's own top speed; the jump gets close, so only the last few seconds are played.
+    static constexpr float settle_speed=.05f,max_speed=10.f;
+    static constexpr int settle_frames=3,max_jumps=3,max_frames=6000,max_stalled=120,overshoot=50,unpause_frames=30;
+    bool active=false;int target=0;
+    // Call when the jump command for target has just been sent.
+    void start(int target_tick,int now,bool paused,float speed) {
+        active=true;target=target_tick;restore=std::isfinite(speed) && speed>0?speed:1.f;pause_at_end=paused;
+        settle=settle_frames;frames=0;stalled=0;jumps=0;last=now;unpause_sent=false;unpause_wait=0;
+    }
+    void cancel(){active=false;}
+    seek_step finish(int now,bool paused) {
+        active=false;
+        // One toggle at most, and only if the state differs from how the user left it.
+        return {seek_step::finish,now,restore,pause_at_end!=paused};
+    }
+    seek_step frame(int now,int end,bool paused,double frame_ms) {
+        if(!active)return {};
+        ++frames;
+        if(settle>0) {
+            // The tick follows a jump a frame or two late; creep meanwhile so the target isn't passed.
+            if(--settle==0 && now>target+overshoot && jumps<max_jumps) {
+                ++jumps;settle=settle_frames;
+                return {seek_step::jump,target,settle_speed};
+            }
+            if(settle>0)return {seek_step::set_speed,0,settle_speed};
+        }
+        const int remaining=target-now;
+        const bool film_over=end>0 && now>=end-1;
+        if(remaining<=0 || frames>max_frames || film_over)return finish(now,paused);
+        if(paused) {
+            // The film has to run to get there. demo_pause toggles: send it once, never repeatedly
+            // (dozens of toggles around a jump broke the first-person view). If it doesn't take, stay
+            // where the jump landed.
+            if(!unpause_sent){unpause_sent=true;unpause_wait=0;return {seek_step::set_speed,0,settle_speed,true};}
+            if(++unpause_wait>unpause_frames)return finish(now,paused);
+            return {seek_step::set_speed,0,settle_speed};
+        }
+        stalled=now>last?0:stalled+1;last=now;
+        if(stalled>max_stalled)return finish(now,paused);
+        // Cover about half the remaining time each frame: full speed far away, slowing onto the tick.
+        const double ms=std::clamp(frame_ms,1.,100.);
+        return {seek_step::set_speed,0,float(std::clamp(remaining*.5/ms,double(settle_speed),double(max_speed)))};
+    }
+};
 inline constexpr std::array<float, 26> speeds = {
     .01f,.02f,.05f,.1f,.2f,.3f,.4f,.5f,.6f,.7f,.8f,.9f,
     1.f,1.25f,1.5f,1.75f,2.f,2.5f,3.f,4.f,5.f,6.f,7.f,8.f,9.f,10.f};

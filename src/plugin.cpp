@@ -281,7 +281,7 @@ namespace theater {
 void render_after_reshade(ID3D11RenderTargetView* output){render_overlay(output);}
 void open_game_menu(){if(window && native_menu_message)PostMessageW(window,native_menu_message,0,0);}
 }
-extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test10";}
+extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test11";}
 extern "C" __declspec(dllexport) void post_unpack() {
     if(init_thread.joinable())return;
     init_thread=std::thread([] {

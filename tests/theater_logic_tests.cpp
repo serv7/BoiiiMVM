@@ -75,6 +75,51 @@ int main() {
     assert(timeline_tick(-1,1000,2000)==1000);
     assert(timeline_tick(2,1000,2000)==2000);
     assert(timeline_tick(.5f,1000,1000)==1000);
+    {
+        // Seek: the engine jump lands short, the rest is played fast and slowed onto the target.
+        seek_controller seek;seek.start(50000,10000,false,1.f);
+        double now=12000;int steps=0;seek_step last;
+        for(;steps<2000 && seek.active;++steps) {
+            last=seek.frame(int(now),90000,false,16.);
+            if(last.type==seek_step::set_speed){assert(last.speed>=seek_controller::settle_speed && last.speed<=seek_controller::max_speed);now+=last.speed*16.;}
+            assert(last.type!=seek_step::jump && !last.toggle_pause);
+        }
+        assert(!seek.active && last.type==seek_step::finish && last.speed==1.f && !last.toggle_pause);
+        // It slows down near the target rather than flying past it.
+        assert(now>=50000 && now-50000<=16);
+    }
+    {
+        // Seek back from a paused film: the jump lands past the target, so it jumps back again; then
+        // exactly one unpause, play onto the target, and exactly one pause to leave it paused.
+        seek_controller seek;seek.start(20000,30000,true,.5f);
+        double now=25000;bool jumped=false,paused=true;int toggles=0;seek_step last;
+        for(int i=0;i<5000 && seek.active;++i) {
+            last=seek.frame(int(now),90000,paused,16.);
+            if(last.toggle_pause){++toggles;paused=!paused;}
+            if(last.type==seek_step::jump){assert(last.tick==20000);jumped=true;now=19000;}
+            else if(last.type==seek_step::set_speed && !paused)now+=last.speed*16.;
+        }
+        assert(jumped && last.type==seek_step::finish && toggles==2 && paused && last.speed==.5f && now>=20000);
+    }
+    {
+        // If demo_pause doesn't take, it is not sent again: one toggle, then it stays where it landed.
+        seek_controller seek;seek.start(30000,10000,true,1.f);
+        int toggles=0,frames=0;seek_step last;
+        while(seek.active && frames<1000){last=seek.frame(15000,90000,true,16.);toggles+=last.toggle_pause;++frames;}
+        assert(!seek.active && toggles==1 && !last.toggle_pause && frames<=seek_controller::settle_frames+seek_controller::unpause_frames+3);
+    }
+    {
+        // An exact engine jump finishes after settling; a stuck film gives up instead of looping.
+        seek_controller exact;exact.start(40000,10000,false,2.f);seek_step last;
+        for(int i=0;i<10 && exact.active;++i)last=exact.frame(40000,90000,false,16.);
+        assert(!exact.active && last.type==seek_step::finish && last.speed==2.f && !last.toggle_pause);
+        seek_controller stuck;stuck.start(40000,10000,false,1.f);
+        int frames=0;while(stuck.active && frames<1000){stuck.frame(10000,90000,false,16.);++frames;}
+        assert(!stuck.active && frames<200);
+        seek_controller end;end.start(95000,10000,false,1.f);
+        for(int i=0;i<10 && end.active;++i)last=end.frame(89999,90000,false,16.);
+        assert(!end.active && last.type==seek_step::finish);
+    }
     assert(step_speed(.01f,-1)==.01f);
     assert(step_speed(10.f,1)==10.f);
     assert(step_speed(1.f,1)==1.25f);

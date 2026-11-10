@@ -3,8 +3,25 @@
 #using scripts\shared\util_shared;
 #namespace mvm_corpse;
 
-// Client playback helper. Installed at custom_scripts/ so demo loads do not
-// depend on the private-match mp/ script-directory selection.
+// Hold gun for films. When a player dies the server replaces the player with a body
+// entity in the same snapshot (ClonePlayer), and that body plays the death animation.
+// From that moment our own copy of the dead player's gun follows the body's hand; just
+// above the floor it is let go and falls, bounces and comes to rest.
+//
+// The gun is the one the player was last seen holding. It is NOT taken from the items
+// the game drops at a death: films recorded with the bot tools have no dropped gun
+// (mvm_weapon_drops 0), and the item that does appear there is the Scavenger bag.
+// A dropped gun that does exist in the film is hidden while ours is shown.
+//
+// Only deaths seen from the start get a held gun. A body found any other way (film
+// start, after a seek) is left alone, so a gun never jumps into a hand.
+//
+// RULE FOR THIS FILE: no constant vectors such as (0, 0, 4), not even (0, 0, 0).
+// BOIII's script compiler embeds them in the script and they corrupt the vector math
+// around them (botmod.gsc has the same warning). Every earlier version of this script
+// broke on that: thousands of errors per death in script.log and a crash. Build vectors
+// from components at run time: (v[0], v[1], v[2] + 4).
+
 function autoexec mvm_corpse_init()
 {
     // Match stock client systems: autoexec registers work, and the engine
@@ -25,120 +42,117 @@ function main()
     SetDvar("mvm_corpse_ready", 0);
     SetDvar("mvm_corpse_models", 0);
     level.mvm_corpse_started = true;
-    level.mvm_corpse_entries = [];
-    level.mvm_hidden_drops = [];
-    level.mvm_drop_refresh = false;
-    level.mvm_seed_players = true;
-    level.mvm_seed_attempts = 0;
-    level.mvm_corpse_serial = 0;
-    level.mvm_corpse_refresh = true;
+    level.mvm_holds = [];
+    level.mvm_hold_serial = 0;
+    level.mvm_guns = [];   // last gun seen in each player's hands, by entity number
+    level.mvm_spots = [];  // where each player was last seen
+    level.mvm_deaths = []; // players that just went away, waiting for their body
+    level.mvm_items = [];  // dropped guns that just appeared
+    level.mvm_quiet_until = 0;
+    level.mvm_jump_pending = true;
     callback::on_spawned(&on_player_spawned);
     level thread playback_manager();
+    level thread watch_demo_jumps("demo_jump");
+    level thread watch_demo_jumps("demo_jump0");
 }
 
-function remember_weapon(player)
+// Diagnostics: the last few events are kept in the dvar mvm_corpse_trace. The theater
+// plugin copies new ones into MVM\theater.log ("Hold gun: ...").
+function log_event(text)
 {
-    id = player GetEntityNumber();
-    if (!IsDefined(level.mvm_corpse_entries[id]))
+    if (!IsDefined(level.mvm_events))
     {
-        level.mvm_corpse_entries[id] = SpawnStruct();
-        level.mvm_corpse_entries[id].released = false;
-        level.mvm_corpse_entries[id].release_attempted = false;
-        level.mvm_corpse_entries[id].player_id = id;
+        level.mvm_events = [];
+        level.mvm_event_count = 0;
     }
-    weapon = player.weapon;
-    if (IsDefined(weapon) && IsDefined(weapon.worldModel))
-        level.mvm_corpse_entries[id].weapon = weapon;
-    return id;
+    level.mvm_event_count++;
+    level.mvm_events[level.mvm_events.size] = level.mvm_event_count + " t" + GetTime() + " " + text;
+    if (level.mvm_events.size > 10)
+        ArrayRemoveIndex(level.mvm_events, 0);
+    joined = "";
+    foreach (entry_text in level.mvm_events)
+        joined = joined + entry_text + " | ";
+    SetDvar("mvm_corpse_trace", joined);
+}
+
+function holding_enabled()
+{
+    return IsDemoPlaying() && GetDvarInt("mvm_holdgun", 0) != 0;
 }
 
 function on_player_spawned(localClientNum)
 {
     if (!self IsPlayer())
         return;
-    remember_weapon(self);
-    self notify("mvm_death_observer_restart");
     if (!IsDefined(self.mvm_shutdown_registered))
     {
         self.mvm_shutdown_registered = true;
         self callback::on_shutdown(&on_player_shutdown);
     }
-    self thread death_observer(localClientNum);
 }
 
-function death_observer(localClientNum)
-{
-    self endon("entityshutdown");
-    self endon("mvm_death_observer_restart");
-    self waittill("death");
-    self capture_corpse(localClientNum);
-}
-
+// A player entity went away. At a death its body appears in the same snapshot.
 function on_player_shutdown(localClientNum)
 {
-    if (self IsPlayer())
-        self capture_corpse(localClientNum);
-}
-
-function capture_corpse(localClientNum)
-{
-    id = remember_weapon(self);
-    corpse = self GetPlayerCorpse();
-    if (!IsDefined(corpse))
+    if (!self IsPlayer())
         return;
-    entry = level.mvm_corpse_entries[id];
-    if (!IsDefined(entry.corpse) || entry.corpse != corpse)
+    if (!holding_enabled())
+        return;
+    check_time_jump();
+    now = GetTime();
+    if (now < level.mvm_quiet_until)
+        return;
+    id = self GetEntityNumber();
+    gun = level.mvm_guns[id];
+    spot = level.mvm_spots[id];
+    if (!IsDefined(gun) || !IsDefined(spot))
     {
-        detach_weapon(entry);
-        if (IsDefined(entry.serial))
-            restore_corpse_drops(entry.serial);
-        cleanup_released_weapon(entry);
-        level.mvm_corpse_serial++;
-        entry.serial = level.mvm_corpse_serial;
-        entry.corpse = corpse;
-        entry.born = GetTime();
-        entry.released = false;
-        entry.release_attempted = false;
-        entry.previous_position = undefined;
-        level.mvm_drop_refresh = true;
-        level.mvm_corpse_refresh = true;
+        log_event("p" + id + " gone, gun unknown");
+        return;
     }
+    body = self GetPlayerCorpse();
+    if (IsDefined(body) && body != self && !(body IsPlayer()) && !body_is_held(body))
+    {
+        log_event("p" + id + " gone, body e" + body GetEntityNumber());
+        start_hold(body, gun, id, now);
+        return;
+    }
+    // The body may already have been seen without an owner, or may come a moment later.
+    body = fresh_body_near(spot, now);
+    if (IsDefined(body))
+    {
+        log_event("p" + id + " gone, near body e" + body GetEntityNumber());
+        start_hold(body, gun, id, now);
+        return;
+    }
+    death = SpawnStruct();
+    death.id = id;
+    death.gun = gun;
+    death.spot = spot;
+    death.time = now;
+    death.used = false;
+    level.mvm_deaths[level.mvm_deaths.size] = death;
+    log_event("p" + id + " gone, waiting for body");
 }
 
-// The recorded item still exists in a demo. Hide its presentation while the
-// replacement follows the hand; restore it when the playback override is off.
-function hide_recorded_item(localClientNum)
+function fresh_body_near(spot, now)
 {
-    // Only called with ET_ITEM entities returned by GetEntArrayByType. Client
-    // script models/triggers do not all support the network entity type field.
-    // Reading self.type while walking GetEntArray caused terminal VM errors.
-    if (!IsDefined(self.weapon))
-        return;
-    if (IsDefined(self.mvm_hidden_drop) || self IsHidden())
-        return;
-    foreach (entry in level.mvm_corpse_entries)
+    found = undefined;
+    best = 150 * 150;
+    foreach (body in GetEntArrayByType(0, 2))
     {
-        if (!IsDefined(entry.corpse) || !IsDefined(entry.weapon))
+        if (!IsDefined(body.mvm_fresh) || now - body.mvm_fresh > 500 || now < body.mvm_fresh)
             continue;
-        if (!IsDefined(entry.attached) && !entry.released)
+        if (body_is_held(body))
             continue;
-        if (self.weapon != entry.weapon)
+        gap = DistanceSquared(body.origin, spot);
+        if (gap < best)
         {
-            if (!IsDefined(self.weapon.worldModel) || self.weapon.worldModel != entry.weapon.worldModel)
-                continue;
+            best = gap;
+            found = body;
         }
-        // Match the nearby victim as well as the weapon, leaving unrelated
-        // world pickups alone. No entity positions are changed in the demo.
-        if (DistanceSquared(self.origin, entry.corpse.origin) > 16384)
-            continue;
-        if (IsDefined(self.owner) && self.owner IsPlayer() && self.owner GetEntityNumber() != entry.player_id)
-            continue;
-        self.mvm_hidden_drop = true;
-        self.mvm_hidden_serial = entry.serial;
-        self Hide();
-        level.mvm_hidden_drops[level.mvm_hidden_drops.size] = self;
-        return;
     }
+    return found;
 }
 
 function on_entity_spawned(localClientNum)
@@ -147,224 +161,502 @@ function on_entity_spawned(localClientNum)
         self [[level.mvm_original_entity_spawned]](localClientNum);
     if (self IsPlayer())
         self on_player_spawned(localClientNum);
-    if (IsDemoPlaying() && GetDvarInt("mvm_holdgun", 0) != 0)
-        level.mvm_drop_refresh = true;
-}
-
-function refresh_recorded_drops()
-{
-    level.mvm_drop_refresh = false;
-    has_override = false;
-    foreach (entry in level.mvm_corpse_entries)
-    {
-        if (IsDefined(entry.corpse) && (IsDefined(entry.attached) || entry.released))
-        {
-            has_override = true;
-            break;
-        }
-    }
-    if (!has_override)
+    if (!holding_enabled())
         return;
-    // ET_ITEM = 3 in this BO3 build. Ask the engine for network weapon items,
-    // never probe .type on every client entity. Spawn events coalesce into one
-    // snapshot; there is no world query until a held/released override exists.
-    foreach (entity in GetEntArrayByType(0, 3))
-        entity hide_recorded_item(0);
-}
-
-function restore_recorded_drops()
-{
-    foreach (entity in level.mvm_hidden_drops)
+    check_time_jump();
+    // Types are asked from the engine. Reading .type on any entity caused script errors.
+    foreach (body in GetEntArrayByType(0, 2))
     {
-        if (IsDefined(entity) && IsDefined(entity.mvm_hidden_drop))
+        if (body == self)
         {
-            entity Show();
-            entity.mvm_hidden_drop = undefined;
-            entity.mvm_hidden_serial = undefined;
+            if (!IsDefined(body.mvm_seen))
+                claim_body(body);
+            return;
         }
     }
-    level.mvm_hidden_drops = [];
-}
-
-function restore_corpse_drops(serial)
-{
-    foreach (entity in level.mvm_hidden_drops)
+    foreach (thing in GetEntArrayByType(0, 3))
     {
-        if (IsDefined(entity) && IsDefined(entity.mvm_hidden_drop) && entity.mvm_hidden_serial == serial)
+        if (thing == self)
         {
-            entity Show();
-            entity.mvm_hidden_drop = undefined;
-            entity.mvm_hidden_serial = undefined;
+            if (!IsDefined(thing.mvm_seen))
+                claim_item(thing);
+            return;
         }
     }
 }
 
-function cleanup_released_weapon(entry)
+function watch_demo_jumps(signal)
 {
-    if (IsDefined(entry.dropped) && IsDynEntValid(entry.dropped))
-        SetDynEntEnabled(entry.dropped, false);
-    entry.dropped = undefined;
-}
-
-// The held weapon is attached to the body's own model, like stock gib and
-// character code does. A separate linked script_model collided with the
-// ragdoll when it reached the floor and threw the body across the map.
-function attach_weapon(entry)
-{
-    model = entry.weapon.worldModel;
-    if (!(entry.corpse IsAttached(model, "tag_weapon_right")))
-        entry.corpse Attach(model, "tag_weapon_right");
-    entry.attached = model;
-}
-
-function detach_weapon(entry)
-{
-    if (IsDefined(entry.attached) && IsDefined(entry.corpse) && entry.corpse IsAttached(entry.attached, "tag_weapon_right"))
-        entry.corpse Detach(entry.attached, "tag_weapon_right");
-    entry.attached = undefined;
-}
-
-function delete_with_corpse(corpse, serial, entry)
-{
-    corpse waittill("entityshutdown");
-    restore_corpse_drops(serial);
-    if (entry.serial == serial)
+    for (;;)
     {
-        // The attachment goes away with the body.
-        entry.attached = undefined;
-        cleanup_released_weapon(entry);
+        level waittill(signal);
+        level.mvm_jump_pending = true;
     }
 }
 
-function clear_models()
+// Seeks and rewinds: drop every hold, and for a moment treat new bodies and items as
+// ones that were already lying on the map.
+function check_time_jump()
 {
-    restore_recorded_drops();
-    foreach (entry in level.mvm_corpse_entries)
+    now = GetTime();
+    jumped = level.mvm_jump_pending;
+    if (IsDefined(level.mvm_last_time))
     {
-        detach_weapon(entry);
-        cleanup_released_weapon(entry);
-        entry.released = false;
-        entry.release_attempted = false;
+        if (now < level.mvm_last_time)
+            jumped = true;
+        if (now - level.mvm_last_time > 3000)
+            jumped = true;
     }
-    SetDvar("mvm_corpse_models", 0);
+    before = level.mvm_last_time;
+    level.mvm_last_time = now;
+    if (!jumped)
+        return;
+    level.mvm_jump_pending = false;
+    level.mvm_quiet_until = now + 300;
+    level.mvm_deaths = [];
+    level.mvm_items = [];
+    clear_all_holds();
+    if (IsDefined(before))
+        log_event("jump " + before + " -> " + now);
+}
+
+// A body entity seen for the first time.
+function claim_body(body)
+{
+    body.mvm_seen = true;
+    now = GetTime();
+    if (now < level.mvm_quiet_until)
+        return;
+    body.mvm_fresh = now;
+    if (body_is_held(body))
+        return;
+    // A player that went away a moment ago, right here.
+    found = undefined;
+    best = 150 * 150;
+    foreach (death in level.mvm_deaths)
+    {
+        if (death.used || now - death.time > 500 || now < death.time)
+            continue;
+        gap = DistanceSquared(death.spot, body.origin);
+        if (gap < best)
+        {
+            best = gap;
+            found = death;
+        }
+    }
+    if (IsDefined(found))
+    {
+        found.used = true;
+        log_event("body e" + body GetEntityNumber() + " for p" + found.id);
+        start_hold(body, found.gun, found.id, now);
+        return;
+    }
+    // The watched player's own entity stays when it dies.
+    foreach (player in GetPlayers(0))
+    {
+        owned = player GetPlayerCorpse();
+        if (IsDefined(owned) && owned == body)
+        {
+            id = player GetEntityNumber();
+            gun = level.mvm_guns[id];
+            if (IsDefined(gun))
+            {
+                log_event("body e" + body GetEntityNumber() + " of p" + id);
+                start_hold(body, gun, id, now);
+            }
+            return;
+        }
+    }
+    log_event("body e" + body GetEntityNumber() + " no owner yet");
+}
+
+// A dropped item seen for the first time. A gun dropped at a death is hidden while our
+// own copy is shown. The Scavenger bag is not a gun.
+function claim_item(thing)
+{
+    thing.mvm_seen = true;
+    now = GetTime();
+    if (now < level.mvm_quiet_until)
+        return;
+    if (!IsDefined(thing.weapon) || !IsDefined(thing.weapon.worldModel) || thing.weapon.worldModel == "")
+        return;
+    if (IsDefined(thing.weapon.name) && IsSubStr(thing.weapon.name, "scavenger"))
+        return;
+    entry = SpawnStruct();
+    entry.thing = thing;
+    entry.time = now;
+    entry.used = false;
+    level.mvm_items[level.mvm_items.size] = entry;
+    match_items();
+}
+
+function hold_for_item(entry)
+{
+    foreach (hold in level.mvm_holds)
+    {
+        if (hold.done || IsDefined(hold.item))
+            continue;
+        if (hold.born - entry.time > 500 || entry.time - hold.born > 500)
+            continue;
+        if (DistanceSquared(entry.thing.origin, hold.spot) > 150 * 150)
+            continue;
+        return hold;
+    }
+}
+
+function match_items()
+{
+    foreach (entry in level.mvm_items)
+    {
+        if (entry.used || !IsDefined(entry.thing))
+            continue;
+        hold = hold_for_item(entry);
+        if (!IsDefined(hold))
+            continue;
+        entry.used = true;
+        hold.item = entry.thing;
+        entry.thing Hide();
+        log_event("s" + hold.serial + " hides dropped gun e" + entry.thing GetEntityNumber());
+    }
+}
+
+function body_is_held(body)
+{
+    foreach (hold in level.mvm_holds)
+    {
+        if (!hold.done && IsDefined(hold.body) && hold.body == body)
+            return true;
+    }
+    return false;
+}
+
+function start_hold(body, gun, id, now)
+{
+    spot = body.origin;
+    zero_vec = spot - spot; // a zero vector without a constant
+    level.mvm_hold_serial++;
+    hold = SpawnStruct();
+    hold.serial = level.mvm_hold_serial;
+    hold.body = body;
+    hold.owner = id;
+    hold.born = now;
+    hold.spot = spot;
+    hold.done = false;
+    hold.seen_hand = false;
+    hold.let_go = false;
+    hold.released = false;
+    hold.resting = false;
+    hold.settled = false;
+    hold.bounces = 0;
+    hold.height = 1000;
+    hold.pos = spot;
+    hold.ang = zero_vec;
+    hold.vel = zero_vec;
+    hold.spin = zero_vec;
+    hold.sample_pos = spot;
+    hold.sample_time = now;
+    hold.last_time = now;
+    hold.model = Spawn(0, spot, "script_model");
+    hold.model SetModel(gun.worldModel);
+    // The weapon model has collision; where it met the ragdoll the body was thrown across
+    // the map. NotSolid is in the client method table.
+    hold.model NotSolid();
+    // Shown once the body's hand is known.
+    hold.model Hide();
+    level.mvm_holds[level.mvm_holds.size] = hold;
+    log_event("s" + hold.serial + " hold p" + id + " body e" + body GetEntityNumber() + " " + gun.worldModel);
+    body thread watch_body(hold);
+    level thread run_hold(hold);
+    match_items();
+}
+
+function watch_body(hold)
+{
+    self waittill("entityshutdown");
+    if (!hold.done)
+    {
+        log_event("s" + hold.serial + " body gone");
+        clear_hold(hold);
+    }
+}
+
+// One hold, every rendered frame. Times are demo times, so pause and slow motion apply.
+function run_hold(hold)
+{
+    while (!hold.done)
+    {
+        now = GetTime();
+        if (IsDefined(hold.item) && !(hold.item IsHidden()))
+            hold.item Hide();
+        if (!hold.released)
+        {
+            has_hand = false;
+            if (IsDefined(hold.body) && hold.body HasDObj(0))
+            {
+                hand = hold.body GetTagOrigin("tag_weapon_right");
+                if (IsDefined(hand))
+                    has_hand = true;
+            }
+            if (has_hand)
+            {
+                turn = hold.body GetTagAngles("tag_weapon_right");
+                hold.model.origin = hand;
+                hold.model.angles = turn;
+                hold.pos = hand;
+                hold.ang = turn;
+                if (!hold.seen_hand)
+                {
+                    hold.seen_hand = true;
+                    hold.sample_pos = hand;
+                    hold.sample_time = now;
+                    hold.model Show();
+                    log_event("s" + hold.serial + " in hand");
+                }
+                if (now - hold.sample_time >= 30)
+                {
+                    hold.vel = (hand - hold.sample_pos) * (1000.0 / (now - hold.sample_time));
+                    hold.sample_pos = hand;
+                    hold.sample_time = now;
+                }
+                above = (hand[0], hand[1], hand[2] + 4);
+                lower = (hand[0], hand[1], hand[2] - 128);
+                ground = BulletTrace(above, lower, false, hold.body);
+                height = 1000;
+                if (IsDefined(ground) && IsDefined(ground["fraction"]) && ground["fraction"] < 1)
+                {
+                    floor_spot = ground["position"];
+                    height = hand[2] - floor_spot[2];
+                }
+                hold.height = height;
+                age = now - hold.born;
+                moving = hold.vel;
+                // About to hit the floor: let go with the hand's motion, the gun carries on and bounces.
+                if (moving[2] < -40 && height < 22)
+                    hold.let_go = true;
+                // The hand came to rest (arm lowered slowly, or resting above the floor).
+                if (Length(moving) < 30)
+                {
+                    if (!IsDefined(hold.still_since))
+                        hold.still_since = now;
+                    if (now - hold.still_since >= 250 && age >= 500)
+                        hold.let_go = true;
+                }
+                else
+                    hold.still_since = undefined;
+                if (age >= 3500)
+                    hold.let_go = true;
+                if (GetDvarInt("mvm_releasegun", 0) != 0 && age >= GetDvarFloat("mvm_releasegun_delay", 0.65) * 1000)
+                    hold.let_go = true;
+            }
+            else if (now - hold.born > 3500 || !IsDefined(hold.body))
+            {
+                // No hand to follow. A gun that was never shown just goes away.
+                if (!hold.seen_hand)
+                {
+                    log_event("s" + hold.serial + " no hand found");
+                    clear_hold(hold);
+                }
+                else
+                    hold.let_go = true;
+            }
+            if (hold.let_go && !hold.done)
+            {
+                hold.released = true;
+                hold.release_time = now;
+                push = hold.vel;
+                if (Length(push) > 300)
+                    push = VectorNormalize(push) * 300;
+                hold.vel = push;
+                hold.spin = (RandomFloatRange(-150, 150), RandomFloatRange(-90, 90), RandomFloatRange(-360, 360));
+                // A hand that ended up slightly inside the floor would start the gun under it.
+                start_pos = hold.pos;
+                upper = (start_pos[0], start_pos[1], start_pos[2] + 24);
+                lift = BulletTrace(upper, start_pos, false, hold.model);
+                if (IsDefined(lift) && IsDefined(lift["fraction"]) && lift["fraction"] < 1)
+                {
+                    hit_pos = lift["position"];
+                    hold.pos = (hit_pos[0], hit_pos[1], hit_pos[2] + 2);
+                }
+                log_event("s" + hold.serial + " drop h" + Int(hold.height) + " vz" + Int(push[2]) + " age" + (now - hold.born));
+            }
+        }
+        else if (!hold.settled)
+        {
+            dt = (now - hold.last_time) / 1000.0;
+            if (dt > 0)
+            {
+                if (dt > 0.1)
+                    dt = 0.1;
+                if (!hold.resting)
+                {
+                    motion = hold.vel;
+                    motion = (motion[0], motion[1], motion[2] - 800 * dt);
+                    next_pos = hold.pos + motion * dt;
+                    contact = BulletTrace(hold.pos, next_pos, false, hold.model);
+                    if (IsDefined(contact) && IsDefined(contact["fraction"]) && contact["fraction"] < 1)
+                    {
+                        surface = contact["normal"];
+                        inward = VectorDot(motion, surface);
+                        if (inward < 0)
+                            motion = (motion - surface * (1.4 * inward)) * 0.6;
+                        hold.pos = contact["position"] + surface * 1.5;
+                        hold.spin = hold.spin * 0.45;
+                        hold.bounces++;
+                        if (Length(motion) < 45 || hold.bounces >= 4)
+                            hold.resting = true;
+                    }
+                    else
+                        hold.pos = next_pos;
+                    hold.vel = motion;
+                    hold.ang = hold.ang + hold.spin * dt;
+                    if (now - hold.release_time > 4000)
+                        hold.resting = true;
+                    if (hold.resting)
+                    {
+                        // Lie flat on its side where it stopped.
+                        lying = hold.ang;
+                        roll = 90;
+                        if (AngleClamp180(lying[2]) < 0)
+                            roll = -90;
+                        hold.rest_time = now;
+                        hold.rest_from_pos = hold.pos;
+                        hold.rest_from_ang = lying;
+                        hold.rest_ang = (0, lying[1], roll);
+                        hold.rest_pos = hold.pos;
+                        start_pos = hold.pos;
+                        upper = (start_pos[0], start_pos[1], start_pos[2] + 8);
+                        lower = (start_pos[0], start_pos[1], start_pos[2] - 64);
+                        below = BulletTrace(upper, lower, false, hold.model);
+                        if (IsDefined(below) && IsDefined(below["fraction"]) && below["fraction"] < 1)
+                        {
+                            hit_pos = below["position"];
+                            hold.rest_pos = (hit_pos[0], hit_pos[1], hit_pos[2] + 1.5);
+                        }
+                        log_event("s" + hold.serial + " rest after " + hold.bounces + " bounces");
+                    }
+                }
+                else
+                {
+                    blend = (now - hold.rest_time) / 180.0;
+                    if (blend >= 1)
+                    {
+                        blend = 1;
+                        hold.settled = true;
+                    }
+                    turn = hold.rest_ang - hold.rest_from_ang;
+                    turn = (AngleClamp180(turn[0]), AngleClamp180(turn[1]), AngleClamp180(turn[2]));
+                    hold.ang = hold.rest_from_ang + turn * blend;
+                    hold.pos = hold.rest_from_pos + (hold.rest_pos - hold.rest_from_pos) * blend;
+                }
+                hold.model.origin = hold.pos;
+                hold.model.angles = hold.ang;
+            }
+        }
+        hold.last_time = now;
+        // A tiny real-time wait resumes on the next rendered frame, also while the film is
+        // paused or in slow motion. A gun at rest only needs the item kept hidden.
+        if (hold.settled)
+            waitrealtime(0.1);
+        else
+            waitrealtime(0.001);
+    }
+}
+
+function clear_hold(hold)
+{
+    if (hold.done)
+        return;
+    hold.done = true;
+    if (IsDefined(hold.model))
+        hold.model Delete();
+    if (IsDefined(hold.item) && hold.item IsHidden())
+        hold.item Show();
+}
+
+function clear_all_holds()
+{
+    foreach (hold in level.mvm_holds)
+        clear_hold(hold);
+    level.mvm_holds = [];
 }
 
 function playback_manager()
 {
     // Let finalization/loading return before inspecting the first snapshot.
-    // A frame-end barrier alone can be re-entered at the same paused demo tick.
     waitrealtime(0.05);
-    previous_enabled = false;
-    previous_time = GetTime();
-    last_update = previous_time;
+    was_enabled = false;
     for (;;)
     {
         // Stock callbacks are assigned during level pre-init, before our main.
-        // Preserve their full behavior and chain only the entity-spawn event.
+        // Preserve their full behavior and chain only this event.
         if (!IsDefined(level.mvm_original_entity_spawned) && IsDefined(level.callbackEntitySpawned))
         {
             level.mvm_original_entity_spawned = level.callbackEntitySpawned;
             level.callbackEntitySpawned = &on_entity_spawned;
             SetDvar("mvm_corpse_stage", "watching");
             SetDvar("mvm_corpse_ready", 1);
+            foreach (player in GetPlayers(0))
+                player on_player_spawned(0);
+            log_event("ready");
         }
-        enabled = IsDemoPlaying() && GetDvarInt("mvm_holdgun", 0) != 0;
-        now = GetTime();
-        if (now < previous_time || now - previous_time > 1000)
+        enabled = holding_enabled();
+        if (enabled)
         {
-            clear_models();
-            level.mvm_corpse_entries = [];
-            level.mvm_corpse_refresh = true;
-            level.mvm_seed_players = true;
-            level.mvm_seed_attempts = 0;
-        }
-        if (!enabled && previous_enabled)
-            clear_models();
-        if (enabled && !previous_enabled)
-        {
-            level.mvm_seed_players = true;
-            level.mvm_seed_attempts = 0;
-        }
-        // Linked models follow the hand in the engine. No per-player/frame
-        // position loops are needed. A paused toggle still applies immediately.
-        if (enabled && (!previous_enabled || level.mvm_corpse_refresh || level.mvm_drop_refresh || level.mvm_seed_players || now - last_update >= 50))
-        {
-            if (level.mvm_seed_players && IsDefined(level.mvm_original_entity_spawned))
+            check_time_jump();
+            now = GetTime();
+            // What each player holds and where it is, for the moment it dies.
+            foreach (player in GetPlayers(0))
             {
-                players = GetPlayers(0);
-                foreach (player in players)
-                {
-                    player on_player_spawned(0);
-                    player capture_corpse(0);
-                }
-                level.mvm_seed_attempts++;
-                // Initial client callbacks can precede the first snapshot.
-                // Retry only this bounded bootstrap, never normal playback.
-                if (players.size > 0 || level.mvm_seed_attempts >= 30)
-                    level.mvm_seed_players = false;
+                id = player GetEntityNumber();
+                gun = player.weapon;
+                if (IsDefined(gun) && IsDefined(gun.worldModel) && gun.worldModel != "")
+                    level.mvm_guns[id] = gun;
+                level.mvm_spots[id] = player.origin;
             }
-            count = 0;
-            foreach (entry in level.mvm_corpse_entries)
+            // Fallback in case a spawn was not reported: bodies and items not seen yet.
+            foreach (body in GetEntArrayByType(0, 2))
             {
-                if (!IsDefined(entry.corpse) || !IsDefined(entry.weapon))
-                    continue;
-                if (!IsDefined(entry.attached) && !entry.released)
-                {
-                    if (!entry.corpse HasDObj(0))
-                        continue;
-                    if (!IsDefined(entry.corpse GetTagOrigin("tag_weapon_right")))
-                        continue;
-                    attach_weapon(entry);
-                    if (!IsDefined(entry.watched_serial) || entry.watched_serial != entry.serial)
-                    {
-                        entry.watched_serial = entry.serial;
-                        level thread delete_with_corpse(entry.corpse, entry.serial, entry);
-                    }
-                    level.mvm_drop_refresh = true;
-                }
-                else if (IsDefined(entry.attached) && entry.corpse HasDObj(0) && !(entry.corpse IsAttached(entry.attached, "tag_weapon_right")))
-                {
-                    // A rebuilt body model (for example after a seek) loses attachments.
-                    entry.corpse Attach(entry.attached, "tag_weapon_right");
-                }
-                if (IsDefined(entry.attached))
-                {
-                    count++;
-                    if (GetDvarInt("mvm_releasegun", 0) == 0)
-                        continue;
-                    position = entry.corpse GetTagOrigin("tag_weapon_right");
-                    angles = entry.corpse GetTagAngles("tag_weapon_right");
-                    delay = GetDvarFloat("mvm_releasegun_delay", 0.65);
-                    if (!entry.release_attempted && GetDvarInt("mvm_releasegun", 0) != 0 && now - entry.born >= delay * 1000)
-                    {
-                        entry.release_attempted = true;
-                        velocity = (0, 0, 0);
-                        if (IsDefined(entry.previous_position) && now > entry.previous_time && now - entry.previous_time <= 250)
-                            velocity = (position - entry.previous_position) * (1000.0 / (now - entry.previous_time));
-                        dropped = CreateDynEntAndLaunch(0, entry.weapon.worldModel, position, angles, position - (0, 0, 4), velocity);
-                        if (IsDefined(dropped))
-                        {
-                            entry.dropped = dropped;
-                            detach_weapon(entry);
-                            entry.released = true;
-                            count--;
-                        }
-                    }
-                    entry.previous_position = position;
-                    entry.previous_time = now;
-                }
+                if (!IsDefined(body.mvm_seen))
+                    claim_body(body);
             }
-            SetDvar("mvm_corpse_models", count);
-            if (level.mvm_drop_refresh)
-                refresh_recorded_drops();
-            level.mvm_corpse_refresh = false;
-            last_update = now;
+            foreach (thing in GetEntArrayByType(0, 3))
+            {
+                if (!IsDefined(thing.mvm_seen))
+                    claim_item(thing);
+            }
+            // Forget deaths and dropped guns that found no partner.
+            waiting = [];
+            foreach (death in level.mvm_deaths)
+            {
+                if (!death.used && now >= death.time && now - death.time <= 1000)
+                    waiting[waiting.size] = death;
+            }
+            level.mvm_deaths = waiting;
+            recent = [];
+            foreach (entry in level.mvm_items)
+            {
+                if (!entry.used && now >= entry.time && now - entry.time <= 1000)
+                    recent[recent.size] = entry;
+            }
+            level.mvm_items = recent;
         }
-        previous_time = now;
-        previous_enabled = enabled;
-        // A strictly positive real-time wait yields even when demo time is
-        // paused/zero. Linked models follow the hand in the engine between
-        // updates; this manager only needs 20 Hz for toggles and release logic.
+        else if (was_enabled)
+            clear_all_holds();
+        active = [];
+        foreach (hold in level.mvm_holds)
+        {
+            if (!hold.done)
+                active[active.size] = hold;
+        }
+        // Keep the number of guns on the floor bounded.
+        while (active.size > 12)
+        {
+            clear_hold(active[0]);
+            ArrayRemoveIndex(active, 0);
+        }
+        level.mvm_holds = active;
+        SetDvar("mvm_corpse_models", active.size);
+        was_enabled = enabled;
         waitrealtime(0.05);
     }
 }
