@@ -12,7 +12,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.9.0-test12"
+VERSION = "0.9.0-test13"
 NAME = f"BoiiiMVM-v{VERSION}.zip"
 DATA_DIRS = ("gamesettings", "launcher", "lookup_tables", "scripts", "ui_scripts")
 
@@ -79,6 +79,7 @@ def main() -> None:
     for file in sorted((ROOT / "assets/fog-presets").glob("*.zfog")):
         add(entries, "MVM/Theater/fog-presets/" + file.name, file)
     walk(entries, ROOT / "assets/death-previews", "MVM/Theater/death-previews")
+    walk(entries, ROOT / "assets/outfit-previews", "MVM/Theater/outfit-previews")
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     if "-test" in VERSION:

@@ -3,6 +3,7 @@
 #include "capture.hpp"
 #include "reshade_capture.hpp"
 #include "overlay_hook.hpp"
+#include "outfit_menu.hpp"
 #include "gif_preview.hpp"
 #include "animations.hpp"
 #include <d3d11.h>
@@ -233,7 +234,7 @@ bool initialize_renderer(IDXGISwapChain* swap) {
     ImGui::GetIO().IniFilename=nullptr;ImGui::GetIO().LogFilename=nullptr;
     theater::configure_ui();
     if(!ImGui_ImplWin32_Init(window) || !ImGui_ImplDX11_Init(device,context))return false;
-    theater::gif_preview::set_device(device);
+    theater::gif_preview::set_device(device);theater::outfit_menu::set_device(device);
     theater::reshade_capture::initialize();
     old_wndproc=reinterpret_cast<WNDPROC>(SetWindowLongPtrW(window,GWLP_WNDPROC,reinterpret_cast<LONG_PTR>(wndproc)));
     theater::log_message("D3D11 UI initialized");return create_target(swap);
@@ -286,7 +287,7 @@ namespace theater {
 void render_after_reshade(ID3D11RenderTargetView* output){render_overlay(output);}
 void open_game_menu(){if(window && native_menu_message)PostMessageW(window,native_menu_message,0,0);}
 }
-extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test12";}
+extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test13";}
 extern "C" __declspec(dllexport) void post_unpack() {
     if(init_thread.joinable())return;
     init_thread=std::thread([] {

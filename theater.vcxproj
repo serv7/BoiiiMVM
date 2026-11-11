@@ -20,6 +20,7 @@
     <ClCompile Include="src\animations.cpp" />
     <ClCompile Include="src\animations_ui.cpp" />
     <ClCompile Include="src\gif_preview.cpp" />
+    <ClCompile Include="src\outfit_menu.cpp" />
     <ClCompile Include="src\capture.cpp" />
     <ClCompile Include="src\reshade_capture.cpp" />
     <ClCompile Include="src\backend.cpp" />

@@ -30,6 +30,9 @@
 - **Python encoding**: Always pass `encoding='utf-8'` to `read_text()`/`write_text()` — Codex Python defaults to cp1252.
 - **VirtualQuery**: Use `memory_regions.hpp` cache — raw VirtualQuery takes ~5ms per call on BO3's ~400MB regions.
 
+- **Bot menu (boiii.exe)**: the Insert menu is drawn by boiii.exe with its own Dear ImGui 1.93 WIP. `src/outfit_menu.cpp` replaces the Specialist page from RVA 0x1c4e4 to 0x1c844 and calls the client's ImGui by RVA (`outfit_menu_sites.inc`, all fingerprinted). The menu's settings store (`get_int`/`set_value`) only knows its eight `botmod_*` keys and throws on any other name, so new options are saved by the plugin.
+- **Game console from outside**: keys posted to the game window work without focus (console key is scancode 0x29; arrows and Insert need the extended flag). `lua_exec <file>` runs Lua in the live UI; results come back through dvars read from memory. Never use `devmap` from the title screen (crashes), and never `quit` from the console (blanks `boiii_players/botmod.json`).
+
 ## Build & Test
 - Build: `./build.ps1`
 - Tests: `./tools/test.ps1`

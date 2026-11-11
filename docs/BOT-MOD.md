@@ -10,6 +10,14 @@ The bot mod builds on the BOIII bot mod created by [@luslex on X](https://x.com/
 | J | Load the saved position / respawn there |
 | K | Kill your player to reset a take |
 
-The **Bots** page can spawn or remove bots, switch them between friendly and enemy teams, make them look toward your position once or stare continuously, and save or load your position. Use **Loadout** to choose the weapon and camo held by bots or give a selected weapon and camo to yourself. Use **Specialist** to pick specialist, body, and head skins for bots or yourself. The small color circle in the menu changes its accent color. A **Keybinds** page remaps bot-menu actions.
+The **Bots** page can spawn or remove bots, switch them between friendly and enemy teams, make them look toward your position once or stare continuously, and save or load your position. Use **Loadout** to choose the weapon and camo held by bots or give a selected weapon and camo to yourself. Use **Specialist** to pick the specialist and outfit for bots or yourself (see below). The small color circle in the menu changes its accent color. A **Keybinds** page remaps bot-menu actions.
 
 The original console commands include `botmod_menu`, `botmod_look`, `botmod_stare 1`/`0`, `botmod_remove`, `botmod_refresh`, and `botmod_team 1`/`0`. The bot mod stores its settings in `boiii_players\botmod.json`. These commands and the on-screen menu are intended for private custom matches. The BOIII theater plugin is a separate tool for reviewing the saved film and building cinematics.
+
+## Specialist page
+
+The Specialist page lists every outfit by its in-game name and shows a picture of the one under the mouse; the picture stays on the selected outfit when nothing is hovered. Picking an outfit sets the matching body and head in one click.
+
+Tick **Separate Head & Body Selection** to mix parts: **Body** and **Head** above the list choose which part it changes, and the picture shows the chosen head above the chosen body with both names. Turning the option off again keeps a mixed pair until you pick a complete outfit. Blackjack has no named outfits, so his two entries are numbered.
+
+The names were read from the game's own outfit table, where body N and helmet N of a specialist carry the same name, and the pictures were rendered on the game's Personalization screen with exactly those two parts (344 outfits). They live in `MVM/Theater/outfit-previews` (`catalog.txt`, `h<specialist>_<outfit>.jpg`, `..._head.jpg`). A missing picture or name falls back to "No picture" or a numbered entry. The page needs the supplied `boiii.exe`; with any other client build the original page with numbered Body and Head boxes is shown. `tools/outfits` holds the scripts that produced the set.

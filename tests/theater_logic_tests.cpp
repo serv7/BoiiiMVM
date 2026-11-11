@@ -1,7 +1,12 @@
 #include "../src/theater_logic.hpp"
 #include "../src/camera_input.hpp"
 #include "../src/animation_records.hpp"
+#include "../src/outfit_catalog.hpp"
 #include <cassert>
+#include <filesystem>
+#include <fstream>
+#include <set>
+#include <sstream>
 struct animation_fixture {
     std::map<std::string,std::pair<uintptr_t,theater::animations::record>> assets;
     uintptr_t find(const std::string& name){auto it=assets.find(name);return it==assets.end()?0:it->second.first;}
@@ -10,6 +15,44 @@ struct animation_fixture {
 };
 int main() {
     using namespace theater;
+    {
+        // Bot menu outfits: names come from the catalog, with numbered fallbacks where the game has none.
+        std::istringstream text("# note\nS|8|Firebreak\nO|8|0|Pyro\nO|8|2|Jungle\r\nS|9|Blackjack\nO|9|0|\nO|9|1|\nO|7|0|Orphan\nO|8|x|Bad\nbroken\n");
+        auto names=outfits::catalog::parse(text);
+        assert(names.specialists.size()==2 && !names.find(7) && names.find(8)->name=="Firebreak");
+        const auto* firebreak=names.find(8);const auto* blackjack=names.find(9);
+        assert(firebreak->names.size()==3 && outfits::label(firebreak,0,"Outfit")=="Pyro" && outfits::label(firebreak,2,"Outfit")=="Jungle");
+        assert(outfits::label(firebreak,1,"Outfit")=="Outfit 2" && outfits::label(firebreak,9,"Body")=="Body 10" && outfits::label(nullptr,0,"Head")=="Head 1");
+        assert(outfits::label(blackjack,1,"Outfit")=="Outfit 2");
+        // Counts: the game's own number once a match has reported it, the catalog before that.
+        assert(outfits::count(firebreak,0)==3 && outfits::count(firebreak,38)==38 && outfits::count(nullptr,0)==0);
+        assert(outfits::outfit_count(blackjack,1,2)==2 && outfits::outfit_count(blackjack,0,0)==2 && outfits::outfit_count(nullptr,5,4)==5);
+        assert(outfits::image_name(8,11,false)=="h8_11.jpg" && outfits::image_name(0,3,true)=="h0_03_head.jpg");
+        // A mixed body and head fit inside the picture box, head above the body, nothing overlapping.
+        for(float width:{110.f,228.f,400.f}) {
+            const float height=width*399.f/360.f;const auto parts=outfits::mix(width,height);
+            assert(parts.head.y0==0 && parts.head.y1==parts.body.y0 && parts.body.y1<=height+.01f);
+            assert(parts.head.x0>=0 && parts.head.x1<=width && parts.body.x0>=0 && parts.body.x1<=width+.01f);
+            assert(std::abs((parts.head.x1-parts.head.x0)-(parts.head.y1-parts.head.y0))<.01f && parts.body_v0>.2f && parts.body_v0<.4f);
+        }
+        // The shipped catalog: nine specialists with 38 named outfits each plus Blackjack, a picture and a head picture for each.
+        std::ifstream shipped("assets/outfit-previews/catalog.txt");assert(shipped);
+        auto all=outfits::catalog::parse(shipped);
+        assert(all.specialists.size()==10);
+        size_t pictures=0;
+        for(const auto& who:all.specialists) {
+            assert(!who.name.empty() && who.names.size()==(who.id==9?2u:38u));
+            std::set<std::string> seen;
+            for(size_t i=0;i<who.names.size();++i) {
+                if(who.id!=9)assert(!who.names[i].empty() && seen.insert(who.names[i]).second);
+                for(bool head:{false,true}) {
+                    auto file=std::filesystem::path("assets/outfit-previews")/outfits::image_name(who.id,int(i),head);
+                    assert(std::filesystem::file_size(file)>2000);++pictures;
+                }
+            }
+        }
+        assert(pictures==688 && all.find(8)->names[11]=="Night" && all.find(0)->names[0]=="Brute Force");
+    }
     assert(modified_camera_speed(.1f,4,.1f,true,false)==.4f);
     assert(std::abs(modified_camera_speed(.1f,4,.1f,true,true)-.01f)<.00001f);
     assert(next_camera_mode(0,1)==2 && next_camera_mode(0,-1)==1);

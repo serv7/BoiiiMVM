@@ -1,0 +1,697 @@
+H|0|pbt_mp_mercenary|HEROES_MERCENARY|Ruin|false
+B|0|0|HEROES_MERCENARY_UNIQUE_01|Brute Force|t7_icon_pbt_mp_mercenary_body1_skin1_rwd
+B|0|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_mercenary_body1_skin2_rwd
+B|0|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_mercenary_body1_skin3_rwd
+B|0|3|HEROES_MERCENARY_UNIQUE_02|Warrior|t7_icon_pbt_mp_mercenary_body2_skin1_rwd
+B|0|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_mercenary_body2_skin2_rwd
+B|0|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_mercenary_body2_skin3_rwd
+B|0|6|HEROES_MERCENARY_SPECIAL_01|Spades|t7_icon_pbt_mp_mercenary_body1_skin4_rwd
+B|0|7|HEROES_MERCENARY_SPECIAL_02|Gladiator|t7_icon_pbt_mp_mercenary_body2_skin4_rwd
+B|0|8|HEROES_MERCENARY_EPIC|Viking|t7_icon_pbt_mp_mercenary_body1_skin5_rwd
+B|0|9|HEROES_MERCENARY_UBER|Hero|t7_icon_pbt_mp_mercenary_body2_skin5_rwd
+B|0|10|HEROES_SKY|Sky|t7_pbt_loot_mercenary_body1_skin6
+B|0|11|HEROES_NIGHT|Night|t7_pbt_loot_mercenary_body2_skin6
+B|0|12|HEROES_MERCENARY_BRONZE|Bronze|t7_pbt_loot_mercenary_body1_skin7
+B|0|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_mercenary_body2_caterpillar
+B|0|14|HEROES_MERCENARY_DRAGON|Dragon|t7_pbt_loot_theme_mercenary_body1_dragon
+B|0|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_mercenary_body1_geist
+B|0|16|HEROES_MERCENARY_SAMURAI|Samurai|t7_pbt_loot_theme_mercenary_body2_samurai
+B|0|17|HEROES_MERCENARY_WILD_DOG|Rabid|t7_pbt_loot_theme_mercenary_body2_wilddog
+B|0|18|HEROES_MERCENARY_HAIDA|Haida|t7_pbt_loot_theme_mercenary_body1_haida
+B|0|19|HEROES_MERCENARY_FURY|Fury|t7_pbt_loot_theme_mercenary_body3_fury
+B|0|20|HEROES_MERCENARY_GOBLINKING|Goblin King|t7_pbt_loot_theme_mercenary_body3_goblinking
+B|0|21|HEROES_MERCENARY_POSEIDON|Poseidon|t7_pbt_loot_theme_mercenary_body1_poseidon
+B|0|22|HEROES_MERCENARY_JADE|Jade|t7_pbt_loot_theme_mercenary_body2_jade
+B|0|23|HEROES_MERCENARY_COBRA|Cobra|t7_pbt_loot_theme_mercenary_body1_cobra
+B|0|24|HEROES_MERCENARY_FRANKENSTEIN|Frankenstein|t7_pbt_loot_theme_mercenary_body2_frankenstein
+B|0|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_mercenary_body3_panda
+B|0|26|HEROES_MERCENARY_TIGERSHARK|Tiger Shark|t7_pbt_loot_theme_mercenary_body2_tigershark
+B|0|27|HEROES_MERCENARY_BONE_WARRIOR|Bone Warrior|t7_pbt_loot_theme_mercenary_body3_bonewarrior
+B|0|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_mercenary_body3_ardent
+B|0|29|HEROES_MERCENARY_GOLEM|Golem|t7_pbt_loot_theme_mercenary_body1_golem
+B|0|30|HEROES_MERCENARY_ACTIONFIGURE|Action Figure|t7_pbt_loot_theme_mercenary_body1_actionfigure
+B|0|31|HEROES_MERCENARY_FROST|Frost|t7_pbt_loot_theme_mercenary_body3_frost
+B|0|32|HEROES_MERCENARY_SCRUM|Scrum|t7_pbt_loot_theme_mercenary_body2_scrum
+B|0|33|HEROES_MERCENARY_DEATH_RACER|Death Racer|t7_pbt_loot_theme_mercenary_body3_death_racer
+B|0|34|HEROES_MERCENARY_SCORCH|Scorch|t7_pbt_loot_theme_mercenary_body3_scorch
+B|0|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_mercenary_body2_permafrost
+B|0|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_mercenary_body1_hive
+B|0|37|HEROES_MERCENARY_KNIGHTMARE|Knightmare|t7_pbt_loot_theme_mercenary_body3_knightmare
+M|0|0|HEROES_MERCENARY_UNIQUE_01|Brute Force|t7_icon_pbt_mp_mercenary_head1_skin1_rwd
+M|0|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_mercenary_head1_skin2_rwd
+M|0|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_mercenary_head1_skin3_rwd
+M|0|3|HEROES_MERCENARY_UNIQUE_02|Warrior|t7_icon_pbt_mp_mercenary_head2_skin1_rwd
+M|0|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_mercenary_head2_skin2_rwd
+M|0|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_mercenary_head2_skin3_rwd
+M|0|6|HEROES_MERCENARY_SPECIAL_01|Spades|t7_icon_pbt_mp_mercenary_head3_skin1_rwd
+M|0|7|HEROES_MERCENARY_SPECIAL_02|Gladiator|t7_icon_pbt_mp_mercenary_head4_skin1_rwd
+M|0|8|HEROES_MERCENARY_EPIC|Viking|t7_icon_pbt_mp_mercenary_head3_skin2_rwd
+M|0|9|HEROES_MERCENARY_UBER|Hero|t7_icon_pbt_mp_mercenary_head4_skin2_rwd
+M|0|10|HEROES_SKY|Sky|t7_pbt_loot_mercenary_head3_skin3
+M|0|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_mercenary_head1_night
+M|0|12|HEROES_MERCENARY_BRONZE|Bronze|t7_pbt_loot_mercenary_head4_skin3
+M|0|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_mercenary_head2_caterpillar
+M|0|14|HEROES_MERCENARY_DRAGON|Dragon|t7_pbt_loot_theme_mercenary_head1_dragon
+M|0|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_mercenary_head4_geist
+M|0|16|HEROES_MERCENARY_SAMURAI|Samurai|t7_pbt_loot_theme_mercenary_head2_samurai
+M|0|17|HEROES_MERCENARY_WILD_DOG|Rabid|t7_pbt_loot_theme_mercenary_head4_wilddog
+M|0|18|HEROES_MERCENARY_HAIDA|Haida|t7_pbt_loot_theme_mercenary_head1_haida
+M|0|19|HEROES_MERCENARY_FURY|Fury|t7_pbt_loot_theme_mercenary_head5_fury
+M|0|20|HEROES_MERCENARY_GOBLINKING|Goblin King|t7_pbt_loot_theme_mercenary_head6_goblinking
+M|0|21|HEROES_MERCENARY_POSEIDON|Poseidon|t7_pbt_loot_theme_mercenary_head3_poseidon
+M|0|22|HEROES_MERCENARY_JADE|Jade|t7_pbt_loot_theme_mercenary_head4_jade
+M|0|23|HEROES_MERCENARY_COBRA|Cobra|t7_pbt_loot_theme_mercenary_head2_cobra
+M|0|24|HEROES_MERCENARY_FRANKENSTEIN|Frankenstein|t7_pbt_loot_theme_mercenary_head3_frankenstein
+M|0|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_mercenary_head5_panda
+M|0|26|HEROES_MERCENARY_TIGERSHARK|Tiger Shark|t7_pbt_loot_theme_mercenary_head4_tigershark
+M|0|27|HEROES_MERCENARY_BONE_WARRIOR|Bone Warrior|t7_pbt_loot_theme_mercenary_head6_bonewarrior
+M|0|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_mercenary_head3_ardent
+M|0|29|HEROES_MERCENARY_GOLEM|Golem|t7_pbt_loot_theme_mercenary_head6_golem
+M|0|30|HEROES_MERCENARY_ACTIONFIGURE|Action Figure|t7_pbt_loot_theme_mercenary_head5_actionfigure
+M|0|31|HEROES_MERCENARY_FROST|Frost|t7_pbt_loot_theme_mercenary_head5_frost
+M|0|32|HEROES_MERCENARY_SCRUM|Scrum|t7_pbt_loot_theme_mercenary_head1_scrum
+M|0|33|HEROES_MERCENARY_DEATH_RACER|Death Racer|t7_pbt_loot_theme_mercenary_head6_death_racer
+M|0|34|HEROES_MERCENARY_SCORCH|Scorch|t7_pbt_loot_theme_mercenary_head5_scorch
+M|0|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_mercenary_head1_permafrost
+M|0|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_mercenary_head4_hive
+M|0|37|HEROES_MERCENARY_KNIGHTMARE|Knightmare|t7_pbt_loot_theme_mercenary_head2_knightmare
+H|1|pbt_mp_outrider|HEROES_OUTRIDER|Outrider|false
+B|1|0|HEROES_OUTRIDER_UNIQUE_01|Hunter|t7_icon_pbt_mp_outrider_body1_skin1_rwd
+B|1|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_outrider_body1_skin2_rwd
+B|1|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_outrider_body1_skin3_rwd
+B|1|3|HEROES_OUTRIDER_UNIQUE_02|Elite Squad|t7_icon_pbt_mp_outrider_body2_skin1_rwd
+B|1|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_outrider_body2_skin2_rwd
+B|1|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_outrider_body2_skin3_rwd
+B|1|6|HEROES_OUTRIDER_EPIC|Amazonas|t7_icon_pbt_mp_outrider_body1_skin5_rwd
+B|1|7|HEROES_OUTRIDER_SPECIAL_02|A.B.I.N.|t7_icon_pbt_mp_outrider_body2_skin4_rwd
+B|1|8|HEROES_OUTRIDER_SPECIAL_01|Hornet|t7_icon_pbt_mp_outrider_body1_skin4_rwd
+B|1|9|HEROES_OUTRIDER_UBER|Hero|t7_icon_pbt_mp_outrider_body2_skin5_rwd
+B|1|10|HEROES_SKY|Sky|t7_pbt_loot_outrider_body1_skin6
+B|1|11|HEROES_NIGHT|Night|t7_pbt_loot_outrider_body2_skin6
+B|1|12|HEROES_OUTRIDER_MATADOR|Matador|t7_pbt_loot_outrider_body1_skin7
+B|1|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_outrider_body2_caterpillar
+B|1|14|HEROES_OUTRIDER_MUERTOS|de los Muertos|t7_pbt_loot_theme_outrider_body1_muertos
+B|1|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_outrider_body1_geist
+B|1|16|HEROES_OUTRIDER_ASH_AND_BLOOD|Ash and Blood|t7_pbt_loot_theme_outrider_body2_ashblood
+B|1|17|HEROES_OUTRIDER_ANGEL_OF_DEATH|Angel of Death|t7_pbt_loot_theme_outrider_body2_angelofdeath
+B|1|18|HEROES_OUTRIDER_PHARAOH|Pharaoh|t7_pbt_loot_theme_outrider_body1_pharaoh
+B|1|19|HEROES_OUTRIDER_TANGO|Tango|t7_pbt_loot_theme_outrider_body3_tango
+B|1|20|HEROES_OUTRIDER_POSH|Posh|t7_pbt_loot_theme_outrider_body3_posh
+B|1|21|HEROES_OUTRIDER_ENSNARED|Ensnared|t7_pbt_loot_theme_outrider_body1_ensnared
+B|1|22|HEROES_OUTRIDER_ARMADEIRAS|Armadeiras|t7_pbt_loot_theme_outrider_body2_armadeiras
+B|1|23|HEROES_OUTRIDER_FLASHDANCE|Flashdance|t7_pbt_loot_theme_outrider_body1_flashdance
+B|1|24|HEROES_OUTRIDER_PHOENIX|Phoenix|t7_pbt_loot_theme_outrider_body2_phoenix
+B|1|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_outrider_body3_panda
+B|1|26|HEROES_OUTRIDER_CLIFFHANGER|Cliffhanger|t7_pbt_loot_theme_outrider_body2_cliffhanger
+B|1|27|HEROES_OUTRIDER_BRIDE|Bride|t7_pbt_loot_theme_outrider_body3_bride
+B|1|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_outrider_body3_ardent
+B|1|29|HEROES_OUTRIDER_REGGAE|Reggae|t7_pbt_loot_theme_outrider_body1_reggae
+B|1|30|HEROES_OUTRIDER_BLOODRITE|Bloodrite|t7_pbt_loot_theme_outrider_body1_bloodrite
+B|1|31|HEROES_OUTRIDER_ANGELOFMERCY|Angel of Mercy|t7_pbt_loot_theme_outrider_body3_angelofmercy
+B|1|32|HEROES_OUTRIDER_CONSTRICTOR|Constrictor|t7_pbt_loot_theme_outrider_body2_constrictor
+B|1|33|HEROES_OUTRIDER_MYSTIC|Mystic|t7_pbt_loot_theme_outrider_body3_mystic
+B|1|34|HEROES_OUTRIDER_OMEGA3|Omega 3|t7_pbt_loot_theme_outrider_body3_omega3
+B|1|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_outrider_body1_permafrost
+B|1|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_outrider_body3_hive
+B|1|37|HEROES_OUTRIDER_ANHANGA|Anhanga|t7_pbt_loot_theme_outrider_body2_anhanga
+M|1|0|HEROES_OUTRIDER_UNIQUE_01|Hunter|t7_icon_pbt_mp_outrider_head1_skin1_rwd
+M|1|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_outrider_head1_skin2_rwd
+M|1|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_outrider_head1_skin3_rwd
+M|1|3|HEROES_OUTRIDER_UNIQUE_02|Elite Squad|t7_icon_pbt_mp_outrider_head2_skin1_rwd
+M|1|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_outrider_head2_skin2_rwd
+M|1|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_outrider_head2_skin3_rwd
+M|1|6|HEROES_OUTRIDER_EPIC|Amazonas|t7_icon_pbt_mp_outrider_head3_skin2_rwd
+M|1|7|HEROES_OUTRIDER_SPECIAL_02|A.B.I.N.|t7_icon_pbt_mp_outrider_head4_skin1_rwd
+M|1|8|HEROES_OUTRIDER_SPECIAL_01|Hornet|t7_icon_pbt_mp_outrider_head3_skin1_rwd
+M|1|9|HEROES_OUTRIDER_UBER|Hero|t7_icon_pbt_mp_outrider_head4_skin2_rwd
+M|1|10|HEROES_SKY|Sky|t7_pbt_loot_outrider_head3_skin3
+M|1|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_outrider_head1_night
+M|1|12|HEROES_OUTRIDER_MATADOR|Matador|t7_pbt_loot_outrider_head4_skin3
+M|1|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_outrider_head2_caterpillar
+M|1|14|HEROES_OUTRIDER_MUERTOS|de los Muertos|t7_pbt_loot_theme_outrider_head1_muertos
+M|1|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_outrider_head4_geist
+M|1|16|HEROES_OUTRIDER_ASH_AND_BLOOD|Ash and Blood|t7_pbt_loot_theme_outrider_head2_ashblood
+M|1|17|HEROES_OUTRIDER_ANGEL_OF_DEATH|Angel of Death|t7_pbt_loot_theme_outrider_head4_angelofdeath
+M|1|18|HEROES_OUTRIDER_PHARAOH|Pharaoh|t7_pbt_loot_theme_outrider_head1_pharaoh
+M|1|19|HEROES_OUTRIDER_TANGO|Tango|t7_pbt_loot_theme_outrider_head5_tango
+M|1|20|HEROES_OUTRIDER_POSH|Posh|t7_pbt_loot_theme_outrider_head6_posh
+M|1|21|HEROES_OUTRIDER_ENSNARED|Ensnared|t7_pbt_loot_theme_outrider_head3_ensnared
+M|1|22|HEROES_OUTRIDER_ARMADEIRAS|Armadeiras|t7_pbt_loot_theme_outrider_head4_armadeiras
+M|1|23|HEROES_OUTRIDER_FLASHDANCE|Flashdance|t7_pbt_loot_theme_outrider_head2_flashdance
+M|1|24|HEROES_OUTRIDER_PHOENIX|Phoenix|t7_pbt_loot_theme_outrider_head3_phoenix
+M|1|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_outrider_head5_panda
+M|1|26|HEROES_OUTRIDER_CLIFFHANGER|Cliffhanger|t7_pbt_loot_theme_outrider_head4_cliffhanger
+M|1|27|HEROES_OUTRIDER_BRIDE|Bride|t7_pbt_loot_theme_outrider_head6_bride
+M|1|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_outrider_head3_ardent
+M|1|29|HEROES_OUTRIDER_REGGAE|Reggae|t7_pbt_loot_theme_outrider_head6_reggae
+M|1|30|HEROES_OUTRIDER_BLOODRITE|Bloodrite|t7_pbt_loot_theme_outrider_head5_bloodrite
+M|1|31|HEROES_OUTRIDER_ANGELOFMERCY|Angel of Mercy|t7_pbt_loot_theme_outrider_head5_angelofmercy
+M|1|32|HEROES_OUTRIDER_CONSTRICTOR|Constrictor|t7_pbt_loot_theme_outrider_head1_constrictor
+M|1|33|HEROES_OUTRIDER_MYSTIC|Mystic|t7_pbt_loot_theme_outrider_head6_mystic
+M|1|34|HEROES_OUTRIDER_OMEGA3|Omega 3|t7_pbt_loot_theme_outrider_head5_omega3
+M|1|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_outrider_head1_permafrost
+M|1|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_outrider_head5_hive
+M|1|37|HEROES_OUTRIDER_ANHANGA|Anhanga|t7_pbt_loot_theme_outrider_head3_anhanga
+H|2|pbt_mp_technomancer|HEROES_TECHNOMANCER|Prophet|false
+B|2|0|HEROES_TECHNOMANCER_UNIQUE_01|Sight|t7_icon_pbt_mp_technomancer_body1_skin1_rwd
+B|2|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_technomancer_body1_skin2_rwd
+B|2|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_technomancer_body1_skin3_rwd
+B|2|3|HEROES_TECHNOMANCER_UNIQUE_02|Telementor|t7_icon_pbt_mp_technomancer_body2_skin1_rwd
+B|2|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_technomancer_body2_skin2_rwd
+B|2|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_technomancer_body2_skin3_rwd
+B|2|6|HEROES_TECHNOMANCER_EPIC|Archangel|t7_icon_pbt_mp_technomancer_body1_skin4_rwd
+B|2|7|HEROES_TECHNOMANCER_SPECIAL_02|Apocalypse|t7_icon_pbt_mp_technomancer_body2_skin4_rwd
+B|2|8|HEROES_TECHNOMANCER_SPECIAL_01|Cyberpunk|t7_icon_pbt_mp_technomancer_body1_skin5_rwd
+B|2|9|HEROES_TECHNOMANCER_UBER|Hero|t7_icon_pbt_mp_technomancer_body2_skin5_rwd
+B|2|10|HEROES_SKY|Sky|t7_pbt_loot_technomancer_body1_skin6
+B|2|11|HEROES_NIGHT|Night|t7_pbt_loot_technomancer_body2_skin6
+B|2|12|HEROES_TECHNOMANCER_VAMPIRE|Vampire|t7_pbt_loot_technomancer_body1_skin7
+B|2|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_technomancer_body2_caterpillar
+B|2|14|HEROES_TECHNOMANCER_TEMPLAR|Templar|t7_pbt_loot_theme_technomancer_body1_templar
+B|2|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_technomancer_body1_geist
+B|2|16|HEROES_TECHNOMANCER_DEITY|Deity|t7_pbt_loot_theme_technomancer_body2_deity
+B|2|17|HEROES_TECHNOMANCER_TRIBAL_TECH|Tribal Tech|t7_pbt_loot_theme_technomancer_body2_tribaltech
+B|2|18|HEROES_TECHNOMANCER_UKPUNK|UK|t7_pbt_loot_theme_technomancer_body1_ukpunk
+B|2|19|HEROES_TECHNOMANCER_PALADIN|Paladin|t7_pbt_loot_theme_technomancer_body3_paladin
+B|2|20|HEROES_TECHNOMANCER_GRAPSUS|Grapsus|t7_pbt_loot_theme_technomancer_body3_grapsus
+B|2|21|HEROES_TECHNOMANCER_PARADISE|Paradise|t7_pbt_loot_theme_technomancer_body1_paradise
+B|2|22|HEROES_TECHNOMANCER_ART_DECO|Art Deco|t7_pbt_loot_theme_technomancer_body2_art_deco
+B|2|23|HEROES_TECHNOMANCER_MANTIS|Mantis|t7_pbt_loot_theme_technomancer_body1_mantis
+B|2|24|HEROES_TECHNOMANCER_BPM|BPM|t7_pbt_loot_theme_technomancer_body2_bpm
+B|2|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_technomancer_body3_panda
+B|2|26|HEROES_TECHNOMANCER_CYBORG|Cyborg|t7_pbt_loot_theme_technomancer_body2_cyborg
+B|2|27|HEROES_TECHNOMANCER_BRAINIAN|Brainian|t7_pbt_loot_theme_technomancer_body3_brainian
+B|2|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_technomancer_body3_ardent
+B|2|29|HEROES_TECHNOMANCER_MAD_SCIENTIST|Mad Scientist|t7_pbt_loot_theme_technomancer_body1_mad_scientist
+B|2|30|HEROES_TECHNOMANCER_HEATSTROKE|Heatstroke|t7_pbt_loot_theme_technomancer_body1_heatstroke
+B|2|31|HEROES_TECHNOMANCER_HIGHVOLTAGE|High Voltage|t7_pbt_loot_theme_technomancer_body3_highvoltage
+B|2|32|HEROES_TECHNOMANCER_STRIX|Strix|t7_pbt_loot_theme_technomancer_body2_strix
+B|2|33|HEROES_TECHNOMANCER_SCARAB|Scarab|t7_pbt_loot_theme_technomancer_body3_scarab
+B|2|34|HEROES_TECHNOMANCER_SULTAN|Sultan|t7_pbt_loot_theme_technomancer_body3_sultan
+B|2|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_technomancer_body2_permafrost
+B|2|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_technomancer_body3_hive
+B|2|37|HEROES_TECHNOMANCER_ORACLE|Oracle|t7_pbt_loot_theme_technomancer_body2_oracle
+M|2|0|HEROES_TECHNOMANCER_UNIQUE_01|Sight|t7_icon_pbt_mp_technomancer_head1_skin1_rwd
+M|2|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_technomancer_head1_skin2_rwd
+M|2|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_technomancer_head1_skin3_rwd
+M|2|3|HEROES_TECHNOMANCER_UNIQUE_02|Telementor|t7_icon_pbt_mp_technomancer_head2_skin1_rwd
+M|2|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_technomancer_head2_skin2_rwd
+M|2|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_technomancer_head2_skin3_rwd
+M|2|6|HEROES_TECHNOMANCER_EPIC|Archangel|t7_icon_pbt_mp_technomancer_head3_skin1_rwd
+M|2|7|HEROES_TECHNOMANCER_SPECIAL_02|Apocalypse|t7_icon_pbt_mp_technomancer_head4_skin1_rwd
+M|2|8|HEROES_TECHNOMANCER_SPECIAL_01|Cyberpunk|t7_icon_pbt_mp_technomancer_head3_skin2_rwd
+M|2|9|HEROES_TECHNOMANCER_UBER|Hero|t7_icon_pbt_mp_technomancer_head4_skin2_rwd
+M|2|10|HEROES_SKY|Sky|t7_pbt_loot_technomancer_head3_skin3
+M|2|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_technomancer_head1_night
+M|2|12|HEROES_TECHNOMANCER_VAMPIRE|Vampire|t7_pbt_loot_technomancer_head4_skin3
+M|2|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_technomancer_head2_caterpillar
+M|2|14|HEROES_TECHNOMANCER_TEMPLAR|Templar|t7_pbt_loot_theme_technomancer_head1_templar
+M|2|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_technomancer_head4_geist
+M|2|16|HEROES_TECHNOMANCER_DEITY|Deity|t7_pbt_loot_theme_technomancer_head2_deity
+M|2|17|HEROES_TECHNOMANCER_TRIBAL_TECH|Tribal Tech|t7_pbt_loot_theme_technomancer_head4_tribaltech
+M|2|18|HEROES_TECHNOMANCER_UKPUNK|UK|t7_pbt_loot_theme_technomancer_head1_ukpunk
+M|2|19|HEROES_TECHNOMANCER_PALADIN|Paladin|t7_pbt_loot_theme_technomancer_head5_paladin
+M|2|20|HEROES_TECHNOMANCER_GRAPSUS|Grapsus|t7_pbt_loot_theme_technomancer_head6_grapsus
+M|2|21|HEROES_TECHNOMANCER_PARADISE|Paradise|t7_pbt_loot_theme_technomancer_head3_paradise
+M|2|22|HEROES_TECHNOMANCER_ART_DECO|Art Deco|t7_pbt_loot_theme_technomancer_head4_art_deco
+M|2|23|HEROES_TECHNOMANCER_MANTIS|Mantis|t7_pbt_loot_theme_technomancer_head2_mantis
+M|2|24|HEROES_TECHNOMANCER_BPM|BPM|t7_pbt_loot_theme_technomancer_head3_bpm
+M|2|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_technomancer_head5_panda
+M|2|26|HEROES_TECHNOMANCER_CYBORG|Cyborg|t7_pbt_loot_theme_technomancer_head4_cyborg
+M|2|27|HEROES_TECHNOMANCER_BRAINIAN|Brainian|t7_pbt_loot_theme_technomancer_head6_brainian
+M|2|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_technomancer_head3_ardent
+M|2|29|HEROES_TECHNOMANCER_MAD_SCIENTIST|Mad Scientist|t7_pbt_loot_theme_technomancer_head6_mad_scientist
+M|2|30|HEROES_TECHNOMANCER_HEATSTROKE|Heatstroke|t7_pbt_loot_theme_technomancer_head5_heatstroke
+M|2|31|HEROES_TECHNOMANCER_HIGHVOLTAGE|High Voltage|t7_pbt_loot_theme_technomancer_head5_highvoltage
+M|2|32|HEROES_TECHNOMANCER_STRIX|Strix|t7_pbt_loot_theme_technomancer_head1_strix
+M|2|33|HEROES_TECHNOMANCER_SCARAB|Scarab|t7_pbt_loot_theme_technomancer_head6_scarab
+M|2|34|HEROES_TECHNOMANCER_SULTAN|Sultan|t7_pbt_loot_theme_technomancer_head5_sultan
+M|2|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_technomancer_head4_permafrost
+M|2|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_technomancer_head3_hive
+M|2|37|HEROES_TECHNOMANCER_ORACLE|Oracle|t7_pbt_loot_theme_technomancer_head4_oracle
+H|3|pbt_mp_battery|HEROES_BATTERY|Battery|false
+B|3|0|HEROES_BATTERY_UNIQUE_01|Demolitions|t7_icon_pbt_mp_battery_body1_skin1_rwd
+B|3|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_battery_body1_skin2_rwd
+B|3|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_battery_body1_skin3_rwd
+B|3|3|HEROES_BATTERY_UNIQUE_02|Striker|t7_icon_pbt_mp_battery_body2_skin1_rwd
+B|3|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_battery_body2_skin2_rwd
+B|3|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_battery_body2_skin3_rwd
+B|3|6|HEROES_BATTERY_SPECIAL_01|'Merica|t7_icon_pbt_mp_battery_body1_skin4_rwd
+B|3|7|HEROES_BATTERY_SPECIAL_02|Kustom|t7_icon_pbt_mp_battery_body2_skin4_rwd
+B|3|8|HEROES_BATTERY_EPIC|Victory|t7_icon_pbt_mp_battery_body1_skin5_rwd
+B|3|9|HEROES_BATTERY_UBER|Hero|t7_icon_pbt_mp_battery_body2_skin5_rwd
+B|3|10|HEROES_SKY|Sky|t7_pbt_loot_battery_body1_skin6
+B|3|11|HEROES_NIGHT|Night|t7_pbt_loot_battery_body2_skin6
+B|3|12|HEROES_BATTERY_COMICS|Classic Comics|t7_pbt_loot_battery_body1_skin7
+B|3|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_battery_body2_caterpillar
+B|3|14|HEROES_BATTERY_80S_FLASH|80s Flash|t7_pbt_loot_theme_battery_body1_80s_flash
+B|3|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_battery_body1_geist
+B|3|16|HEROES_BATTERY_JAIL_BIRD|Jail Bird|t7_pbt_loot_theme_battery_body2_jailbird
+B|3|17|HEROES_BATTERY_STEAMPUNK|Steampunk|t7_pbt_loot_theme_battery_body2_steampunk
+B|3|18|HEROES_BATTERY_MMA|MMA Fighter|t7_pbt_loot_theme_battery_body1_mma
+B|3|19|HEROES_BATTERY_PROTOTYPE|Prototype|t7_pbt_loot_theme_battery_body3_prototype
+B|3|20|HEROES_BATTERY_VALKYRIE|Valkyrie|t7_pbt_loot_theme_battery_body3_valkyrie
+B|3|21|HEROES_BATTERY_PIT_CREW|Pit Crew|t7_pbt_loot_theme_battery_body1_pitcrew
+B|3|22|HEROES_BATTERY_BOMBER|Bomber|t7_pbt_loot_theme_battery_body2_bomber
+B|3|23|HEROES_BATTERY_DOUBLE_PLAY|Double Play|t7_pbt_loot_theme_battery_body1_doubleplay
+B|3|24|HEROES_BATTERY_STUNT_GIRL|Stunt Girl|t7_pbt_loot_theme_battery_body2_stuntgirl
+B|3|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_battery_body3_panda
+B|3|26|HEROES_BATTERY_HALFPIPE|Halfpipe|t7_pbt_loot_theme_battery_body2_halfpipe
+B|3|27|HEROES_BATTERY_GORGON|Gorgon|t7_pbt_loot_theme_battery_body3_gorgon
+B|3|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_battery_body3_ardent
+B|3|29|HEROES_BATTERY_BERSERKER|Berserker|t7_pbt_loot_theme_battery_body1_berserker
+B|3|30|HEROES_BATTERY_PAINTBALL|Paintball|t7_pbt_loot_theme_battery_body1_paintball
+B|3|31|HEROES_BATTERY_AFTERBURN|Afterburn|t7_pbt_loot_theme_battery_body3_afterburn
+B|3|32|HEROES_BATTERY_ANARCHY|Anarchy|t7_pbt_loot_theme_battery_body2_anarchy
+B|3|33|HEROES_BATTERY_TORQUE|Torque|t7_pbt_loot_theme_battery_body3_torque
+B|3|34|HEROES_BATTERY_STING|Sting|t7_pbt_loot_theme_battery_body3_sting
+B|3|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_battery_body1_permafrost
+B|3|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_battery_body1_hive
+B|3|37|HEROES_BATTERY_ARCADE|Arcade|t7_pbt_loot_theme_battery_body2_arcade
+M|3|0|HEROES_BATTERY_UNIQUE_01|Demolitions|t7_icon_pbt_mp_battery_head1_skin1_rwd
+M|3|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_battery_head1_skin2_rwd
+M|3|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_battery_head1_skin3_rwd
+M|3|3|HEROES_BATTERY_UNIQUE_02|Striker|t7_icon_pbt_mp_battery_head2_skin1_rwd
+M|3|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_battery_head2_skin2_rwd
+M|3|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_battery_head2_skin3_rwd
+M|3|6|HEROES_BATTERY_SPECIAL_01|'Merica|t7_icon_pbt_mp_battery_head3_skin1_rwd
+M|3|7|HEROES_BATTERY_SPECIAL_02|Kustom|t7_icon_pbt_mp_battery_head4_skin1_rwd
+M|3|8|HEROES_BATTERY_EPIC|Victory|t7_icon_pbt_mp_battery_head3_skin2_rwd
+M|3|9|HEROES_BATTERY_UBER|Hero|t7_icon_pbt_mp_battery_head4_skin2_rwd
+M|3|10|HEROES_SKY|Sky|t7_pbt_loot_battery_head3_skin3
+M|3|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_battery_head1_night
+M|3|12|HEROES_BATTERY_COMICS|Classic Comics|t7_pbt_loot_battery_head4_skin3
+M|3|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_battery_head2_caterpillar
+M|3|14|HEROES_BATTERY_80S_FLASH|80s Flash|t7_pbt_loot_theme_battery_head1_80s_flash
+M|3|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_battery_head4_geist
+M|3|16|HEROES_BATTERY_JAIL_BIRD|Jail Bird|t7_pbt_loot_theme_battery_head2_jailbird
+M|3|17|HEROES_BATTERY_STEAMPUNK|Steampunk|t7_pbt_loot_theme_battery_head4_steampunk
+M|3|18|HEROES_BATTERY_MMA|MMA Fighter|t7_pbt_loot_theme_battery_head1_mma
+M|3|19|HEROES_BATTERY_PROTOTYPE|Prototype|t7_pbt_loot_theme_battery_head5_prototype
+M|3|20|HEROES_BATTERY_VALKYRIE|Valkyrie|t7_pbt_loot_theme_battery_head6_valkyrie
+M|3|21|HEROES_BATTERY_PIT_CREW|Pit Crew|t7_pbt_loot_theme_battery_head3_pitcrew
+M|3|22|HEROES_BATTERY_BOMBER|Bomber|t7_pbt_loot_theme_battery_head4_bomber
+M|3|23|HEROES_BATTERY_DOUBLE_PLAY|Double Play|t7_pbt_loot_theme_battery_head2_doubleplay
+M|3|24|HEROES_BATTERY_STUNT_GIRL|Stunt Girl|t7_pbt_loot_theme_battery_head3_stuntgirl
+M|3|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_battery_head5_panda
+M|3|26|HEROES_BATTERY_HALFPIPE|Halfpipe|t7_pbt_loot_theme_battery_head4_halfpipe
+M|3|27|HEROES_BATTERY_GORGON|Gorgon|t7_pbt_loot_theme_battery_head6_gorgon
+M|3|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_battery_head3_ardent
+M|3|29|HEROES_BATTERY_BERSERKER|Berserker|t7_pbt_loot_theme_battery_head6_berserker
+M|3|30|HEROES_BATTERY_PAINTBALL|Paintball|t7_pbt_loot_theme_battery_head5_paintball
+M|3|31|HEROES_BATTERY_AFTERBURN|Afterburn|t7_pbt_loot_theme_battery_head5_afterburn
+M|3|32|HEROES_BATTERY_ANARCHY|Anarchy|t7_pbt_loot_theme_battery_head1_anarchy
+M|3|33|HEROES_BATTERY_TORQUE|Torque|t7_pbt_loot_theme_battery_head6_torque
+M|3|34|HEROES_BATTERY_STING|Sting|t7_pbt_loot_theme_battery_head5_sting
+M|3|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_battery_head1_permafrost
+M|3|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_battery_head3_hive
+M|3|37|HEROES_BATTERY_ARCADE|Arcade|t7_pbt_loot_theme_battery_head5_arcade
+H|4|pbt_mp_enforcer|HEROES_ENFORCER|Seraph|false
+B|4|0|HEROES_ENFORCER_UNIQUE_01|Immortal|t7_icon_pbt_mp_enforcer_body1_skin1_rwd
+B|4|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_enforcer_body1_skin2_rwd
+B|4|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_enforcer_body1_skin3_rwd
+B|4|3|HEROES_ENFORCER_UNIQUE_02|Enforcer|t7_icon_pbt_mp_enforcer_body2_skin1_rwd
+B|4|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_enforcer_body2_skin2_rwd
+B|4|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_enforcer_body2_skin3_rwd
+B|4|6|HEROES_ENFORCER_SPECIAL_01|Pirate|t7_icon_pbt_mp_enforcer_body1_skin4_rwd
+B|4|7|HEROES_ENFORCER_SPECIAL_02|Moto|t7_icon_pbt_mp_enforcer_body2_skin4_rwd
+B|4|8|HEROES_ENFORCER_EPIC|Dragon|t7_icon_pbt_mp_enforcer_body1_skin5_rwd
+B|4|9|HEROES_ENFORCER_UBER|Hero|t7_icon_pbt_mp_enforcer_body2_skin5_rwd
+B|4|10|HEROES_SKY|Sky|t7_pbt_loot_enforcer_body1_skin6
+B|4|11|HEROES_NIGHT|Night|t7_pbt_loot_enforcer_body2_skin6
+B|4|12|HEROES_ENFORCER_SCHOOL|Private School|t7_pbt_loot_enforcer_body1_skin7
+B|4|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_enforcer_body2_caterpillar
+B|4|14|HEROES_ENFORCER_IMPERIAL|Empress|t7_pbt_loot_theme_enforcer_body1_imperial
+B|4|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_enforcer_body1_geist
+B|4|16|HEROES_ENFORCER_GOTH|Goth|t7_pbt_loot_theme_enforcer_body2_goth
+B|4|17|HEROES_ENFORCER_FUTURE_COP|Justice|t7_pbt_loot_theme_enforcer_body2_future_cop
+B|4|18|HEROES_ENFORCER_GANGSTA|Gangsta|t7_pbt_loot_theme_enforcer_body1_gangsta
+B|4|19|HEROES_ENFORCER_LUCHADORA|Luchadora|t7_pbt_loot_theme_enforcer_body1_luchadora
+B|4|20|HEROES_ENFORCER_FREAKSHOW|Freak Show|t7_pbt_loot_theme_enforcer_body2_freakshow
+B|4|21|HEROES_ENFORCER_OUTLAW|Outlaw|t7_pbt_loot_theme_enforcer_body3_outlaw
+B|4|22|HEROES_ENFORCER_SAKURA|Sakura|t7_pbt_loot_theme_enforcer_body3_sakura
+B|4|23|HEROES_ENFORCER_METAL_HEAD|Metal Head|t7_pbt_loot_theme_enforcer_body1_metalhead
+B|4|24|HEROES_ENFORCER_SHURIKEN|Shuriken|t7_pbt_loot_theme_enforcer_body2_shuriken
+B|4|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_enforcer_body3_panda
+B|4|26|HEROES_ENFORCER_IMPERATOR|Imperator|t7_pbt_loot_theme_enforcer_body2_imperator
+B|4|27|HEROES_ENFORCER_BLOODSUCKER|Bloodsucker|t7_pbt_loot_theme_enforcer_body3_bloodsucker
+B|4|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_enforcer_body3_ardent
+B|4|29|HEROES_ENFORCER_PSYCHO_NURSE|Psycho Nurse|t7_pbt_loot_theme_enforcer_body1_psycho_nurse
+B|4|30|HEROES_ENFORCER_TOMBSTONE|Tombstone|t7_pbt_loot_theme_enforcer_body1_tombstone
+B|4|31|HEROES_ENFORCER_SICARIA|Sicaria|t7_pbt_loot_theme_enforcer_body3_sicaria
+B|4|32|HEROES_ENFORCER_ARTOFWAR|Art of War|t7_pbt_loot_theme_enforcer_body2_war
+B|4|33|HEROES_ENFORCER_PIXIE|Pixie|t7_pbt_loot_theme_enforcer_body3_pixie
+B|4|34|HEROES_ENFORCER_DESPERADA|Desperada|t7_pbt_loot_theme_enforcer_body3_desperada
+B|4|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_enforcer_body1_permafrost
+B|4|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_enforcer_body3_hive
+B|4|37|HEROES_ENFORCER_TERRACOTTA|Terracotta|t7_pbt_loot_theme_enforcer_body2_terracotta
+M|4|0|HEROES_ENFORCER_UNIQUE_01|Immortal|t7_icon_pbt_mp_enforcer_head1_skin1_rwd
+M|4|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_enforcer_head1_skin2_rwd
+M|4|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_enforcer_head1_skin3_rwd
+M|4|3|HEROES_ENFORCER_UNIQUE_02|Enforcer|t7_icon_pbt_mp_enforcer_head2_skin1_rwd
+M|4|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_enforcer_head2_skin2_rwd
+M|4|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_enforcer_head2_skin3_rwd
+M|4|6|HEROES_ENFORCER_SPECIAL_01|Pirate|t7_icon_pbt_mp_enforcer_head3_skin1_rwd
+M|4|7|HEROES_ENFORCER_SPECIAL_02|Moto|t7_icon_pbt_mp_enforcer_head4_skin1_rwd
+M|4|8|HEROES_ENFORCER_EPIC|Dragon|t7_icon_pbt_mp_enforcer_head3_skin2_rwd
+M|4|9|HEROES_ENFORCER_UBER|Hero|t7_icon_pbt_mp_enforcer_head4_skin2_rwd
+M|4|10|HEROES_SKY|Sky|t7_pbt_loot_enforcer_head3_skin3
+M|4|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_enforcer_head1_night
+M|4|12|HEROES_ENFORCER_SCHOOL|Private School|t7_pbt_loot_enforcer_head4_skin3
+M|4|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_enforcer_head2_caterpillar
+M|4|14|HEROES_ENFORCER_IMPERIAL|Empress|t7_pbt_loot_theme_enforcer_head1_imperial
+M|4|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_enforcer_head4_geist
+M|4|16|HEROES_ENFORCER_GOTH|Goth|t7_pbt_loot_theme_enforcer_head2_goth
+M|4|17|HEROES_ENFORCER_FUTURE_COP|Justice|t7_pbt_loot_theme_enforcer_head4_future_cop
+M|4|18|HEROES_ENFORCER_GANGSTA|Gangsta|t7_pbt_loot_theme_enforcer_head1_gangsta
+M|4|19|HEROES_ENFORCER_LUCHADORA|Luchadora|t7_pbt_loot_theme_enforcer_head3_luchadora
+M|4|20|HEROES_ENFORCER_FREAKSHOW|Freak Show|t7_pbt_loot_theme_enforcer_head4_freakshow
+M|4|21|HEROES_ENFORCER_OUTLAW|Outlaw|t7_pbt_loot_theme_enforcer_head5_outlaw
+M|4|22|HEROES_ENFORCER_SAKURA|Sakura|t7_pbt_loot_theme_enforcer_head6_sakura
+M|4|23|HEROES_ENFORCER_METAL_HEAD|Metal Head|t7_pbt_loot_theme_enforcer_head2_metalhead
+M|4|24|HEROES_ENFORCER_SHURIKEN|Shuriken|t7_pbt_loot_theme_enforcer_head3_shuriken
+M|4|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_enforcer_head5_panda
+M|4|26|HEROES_ENFORCER_IMPERATOR|Imperator|t7_pbt_loot_theme_enforcer_head4_imperator
+M|4|27|HEROES_ENFORCER_BLOODSUCKER|Bloodsucker|t7_pbt_loot_theme_enforcer_head6_bloodsucker
+M|4|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_enforcer_head3_ardent
+M|4|29|HEROES_ENFORCER_PSYCHO_NURSE|Psycho Nurse|t7_pbt_loot_theme_enforcer_head6_psycho_nurse
+M|4|30|HEROES_ENFORCER_TOMBSTONE|Tombstone|t7_pbt_loot_theme_enforcer_head5_tombstone
+M|4|31|HEROES_ENFORCER_SICARIA|Sicaria|t7_pbt_loot_theme_enforcer_head5_sicaria
+M|4|32|HEROES_ENFORCER_ARTOFWAR|Art of War|t7_pbt_loot_theme_enforcer_head1_war
+M|4|33|HEROES_ENFORCER_PIXIE|Pixie|t7_pbt_loot_theme_enforcer_head6_pixie
+M|4|34|HEROES_ENFORCER_DESPERADA|Desperada|t7_pbt_loot_theme_enforcer_head5_desperada
+M|4|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_enforcer_head2_permafrost
+M|4|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_enforcer_head3_hive
+M|4|37|HEROES_ENFORCER_TERRACOTTA|Terracotta|t7_pbt_loot_theme_enforcer_head4_terracotta
+H|5|pbt_mp_trapper|HEROES_TRAPPER|Nomad|false
+B|5|0|HEROES_TRAPPER_UNIQUE_01|Survivalist|t7_icon_pbt_mp_trapper_body1_skin1_rwd
+B|5|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_trapper_body1_skin2_rwd
+B|5|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_trapper_body1_skin3_rwd
+B|5|3|HEROES_TRAPPER_UNIQUE_02|Trapper|t7_icon_pbt_mp_trapper_body2_skin1_rwd
+B|5|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_trapper_body2_skin2_rwd
+B|5|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_trapper_body2_skin3_rwd
+B|5|6|HEROES_TRAPPER_SPECIAL_01|Revolucion|t7_icon_pbt_mp_trapper_body1_skin4_rwd
+B|5|7|HEROES_TRAPPER_SPECIAL_02|FUDRA|t7_icon_pbt_mp_trapper_body2_skin4_rwd
+B|5|8|HEROES_TRAPPER_EPIC|Chupacabra|t7_icon_pbt_mp_trapper_body1_skin5_rwd
+B|5|9|HEROES_TRAPPER_UBER|Hero|t7_icon_pbt_mp_trapper_body2_skin5_rwd
+B|5|10|HEROES_SKY|Sky|t7_pbt_loot_trapper_body1_skin6
+B|5|11|HEROES_NIGHT|Night|t7_pbt_loot_trapper_body2_skin6
+B|5|12|HEROES_TRAPPER_CANNIBAL|Cannibal|t7_pbt_loot_trapper_body1_skin7
+B|5|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_trapper_body2_caterpillar
+B|5|14|HEROES_TRAPPER_ARAPAIMA|Arapaima|t7_pbt_loot_theme_trapper_body1_arapaima
+B|5|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_trapper_body1_geist
+B|5|16|HEROES_TRAPPER_POISON_FROG|Poison Frog|t7_pbt_loot_theme_trapper_body2_poisonfrog
+B|5|17|HEROES_TRAPPER_SAFARI|Safari|t7_pbt_loot_theme_trapper_body2_safari
+B|5|18|HEROES_TRAPPER_MAYAN|Mayan|t7_pbt_loot_theme_trapper_body1_mayan
+B|5|19|HEROES_TRAPPER_ONI|Oni|t7_pbt_loot_theme_trapper_body1_oni
+B|5|20|HEROES_TRAPPER_DRUID|Druid|t7_pbt_loot_theme_trapper_body2_druid
+B|5|21|HEROES_TRAPPER_DOOMSDAY|Doomsday|t7_pbt_loot_theme_trapper_body3_doomsday
+B|5|22|HEROES_TRAPPER_BLACK_METAL|Black Metal|t7_pbt_loot_theme_trapper_body3_black_metal
+B|5|23|HEROES_TRAPPER_TIMBER|Timber!|t7_pbt_loot_theme_trapper_body1_timber
+B|5|24|HEROES_TRAPPER_MUMMY|Mummy|t7_pbt_loot_theme_trapper_body2_mummy
+B|5|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_trapper_body3_panda
+B|5|26|HEROES_TRAPPER_RAVEN|Raven|t7_pbt_loot_theme_trapper_body2_raven
+B|5|27|HEROES_TRAPPER_DEMON|Demon|t7_pbt_loot_theme_trapper_body3_lucifer
+B|5|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_trapper_body3_ardent
+B|5|29|HEROES_TRAPPER_GARDEN_GNOMAD|Garden Gnomad|t7_pbt_loot_theme_trapper_body1_garden_gnomad
+B|5|30|HEROES_TRAPPER_NOOGIE|Noogie|t7_pbt_loot_theme_trapper_body1_noogie
+B|5|31|HEROES_TRAPPER_PRIMAL|Primal|t7_pbt_loot_theme_trapper_body3_primal
+B|5|32|HEROES_TRAPPER_UNDERTOW|Undertow|t7_pbt_loot_theme_trapper_body2_undertow
+B|5|33|HEROES_TRAPPER_DARK_ARTS|Dark Arts|t7_pbt_loot_theme_trapper_body3_dark_arts
+B|5|34|HEROES_TRAPPER_ROADKILL|Roadkill|t7_pbt_loot_theme_trapper_body3_roadkill
+B|5|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_trapper_body2_permafrost
+B|5|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_trapper_body1_hive
+B|5|37|HEROES_TRAPPER_SLITHER|Slither|t7_pbt_loot_theme_trapper_body3_slither
+M|5|0|HEROES_TRAPPER_UNIQUE_01|Survivalist|t7_icon_pbt_mp_trapper_head1_skin1_rwd
+M|5|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_trapper_head1_skin2_rwd
+M|5|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_trapper_head1_skin3_rwd
+M|5|3|HEROES_TRAPPER_UNIQUE_02|Trapper|t7_icon_pbt_mp_trapper_head2_skin1_rwd
+M|5|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_trapper_head2_skin2_rwd
+M|5|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_trapper_head2_skin3_rwd
+M|5|6|HEROES_TRAPPER_SPECIAL_01|Revolucion|t7_icon_pbt_mp_trapper_head3_skin1_rwd
+M|5|7|HEROES_TRAPPER_SPECIAL_02|FUDRA|t7_icon_pbt_mp_trapper_head4_skin1_rwd
+M|5|8|HEROES_TRAPPER_EPIC|Chupacabra|t7_icon_pbt_mp_trapper_head3_skin2_rwd
+M|5|9|HEROES_TRAPPER_UBER|Hero|t7_icon_pbt_mp_trapper_head4_skin2_rwd
+M|5|10|HEROES_SKY|Sky|t7_pbt_loot_trapper_head3_skin3
+M|5|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_trapper_head1_night
+M|5|12|HEROES_TRAPPER_CANNIBAL|Cannibal|t7_pbt_loot_trapper_head4_skin3
+M|5|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_trapper_head2_caterpillar
+M|5|14|HEROES_TRAPPER_ARAPAIMA|Arapaima|t7_pbt_loot_theme_trapper_head1_arapaima
+M|5|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_trapper_head4_geist
+M|5|16|HEROES_TRAPPER_POISON_FROG|Poison Frog|t7_pbt_loot_theme_trapper_head2_poisonfrog
+M|5|17|HEROES_TRAPPER_SAFARI|Safari|t7_pbt_loot_theme_trapper_head4_safari
+M|5|18|HEROES_TRAPPER_MAYAN|Mayan|t7_pbt_loot_theme_trapper_head1_mayan
+M|5|19|HEROES_TRAPPER_ONI|Oni|t7_pbt_loot_theme_trapper_head3_oni
+M|5|20|HEROES_TRAPPER_DRUID|Druid|t7_pbt_loot_theme_trapper_head4_druid
+M|5|21|HEROES_TRAPPER_DOOMSDAY|Doomsday|t7_pbt_loot_theme_trapper_head5_doomsday
+M|5|22|HEROES_TRAPPER_BLACK_METAL|Black Metal|t7_pbt_loot_theme_trapper_head6_black_metal
+M|5|23|HEROES_TRAPPER_TIMBER|Timber!|t7_pbt_loot_theme_trapper_head2_timber
+M|5|24|HEROES_TRAPPER_MUMMY|Mummy|t7_pbt_loot_theme_trapper_head3_mummy
+M|5|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_trapper_head5_panda
+M|5|26|HEROES_TRAPPER_RAVEN|Raven|t7_pbt_loot_theme_trapper_head4_raven
+M|5|27|HEROES_TRAPPER_DEMON|Demon|t7_pbt_loot_theme_trapper_head6_lucifer
+M|5|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_trapper_head3_ardent
+M|5|29|HEROES_TRAPPER_GARDEN_GNOMAD|Garden Gnomad|t7_pbt_loot_theme_trapper_head6_garden_gnomad
+M|5|30|HEROES_TRAPPER_NOOGIE|Noogie|t7_pbt_loot_theme_trapper_head5_noogie
+M|5|31|HEROES_TRAPPER_PRIMAL|Primal|t7_pbt_loot_theme_trapper_head5_primal
+M|5|32|HEROES_TRAPPER_UNDERTOW|Undertow|t7_pbt_loot_theme_trapper_head1_undertow
+M|5|33|HEROES_TRAPPER_DARK_ARTS|Dark Arts|t7_pbt_loot_theme_trapper_head6_dark_arts
+M|5|34|HEROES_TRAPPER_ROADKILL|Roadkill|t7_pbt_loot_theme_trapper_head5_roadkill
+M|5|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_trapper_head1_permafrost
+M|5|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_trapper_head2_hive
+M|5|37|HEROES_TRAPPER_SLITHER|Slither|t7_pbt_loot_theme_trapper_head4_slither
+H|6|pbt_mp_reaper|HEROES_REAPER|Reaper|false
+B|6|0|HEROES_REAPER_UNIQUE_01|OEM|t7_icon_pbt_mp_reaper_body1_skin1_rwd
+B|6|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_reaper_body1_skin2_rwd
+B|6|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_reaper_body1_skin3_rwd
+B|6|3|HEROES_REAPER_UNIQUE_02|Stalker|t7_icon_pbt_mp_reaper_body2_skin1_rwd
+B|6|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_reaper_body2_skin2_rwd
+B|6|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_reaper_body2_skin3_rwd
+B|6|6|HEROES_REAPER_SPECIAL_01|Retrograde|t7_icon_pbt_mp_reaper_body1_skin4_rwd
+B|6|7|HEROES_REAPER_SPECIAL_02|High Tech|t7_icon_pbt_mp_reaper_body2_skin4_rwd
+B|6|8|HEROES_REAPER_EPIC|Junkyard|t7_icon_pbt_mp_reaper_body1_skin5_rwd
+B|6|9|HEROES_REAPER_UBER|Hero|t7_icon_pbt_mp_reaper_body2_skin5_rwd
+B|6|10|HEROES_SKY|Sky|t7_pbt_loot_reaper_body1_skin6
+B|6|11|HEROES_NIGHT|Night|t7_pbt_loot_reaper_body2_skin6
+B|6|12|HEROES_REAPER_INVADER|Invader|t7_pbt_loot_reaper_body1_skin7
+B|6|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_reaper_body2_caterpillar
+B|6|14|HEROES_REAPER_SCRIBE|Scribe|t7_pbt_loot_theme_reaper_body1_scribe
+B|6|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_reaper_body1_geist
+B|6|16|HEROES_REAPER_JESTER|Jester|t7_pbt_loot_theme_reaper_body2_jester
+B|6|17|HEROES_REAPER_MAGGOT|Maggot|t7_pbt_loot_theme_reaper_body2_maggot
+B|6|18|HEROES_REAPER_SUPER_CAR|R.P.M.|t7_pbt_loot_theme_reaper_body1_supercar
+B|6|19|HEROES_REAPER_HYDRO|Hydro|t7_pbt_loot_theme_reaper_body1_abyss
+B|6|20|HEROES_REAPER_SERIES_4|Series 4|t7_pbt_loot_theme_reaper_body2_series4
+B|6|21|HEROES_REAPER_WARDEN|Warden|t7_pbt_loot_theme_reaper_body3_warden
+B|6|22|HEROES_REAPER_GRAPHIC|Graphic|t7_pbt_loot_theme_reaper_body3_graphic
+B|6|23|HEROES_REAPER_ZULU|Zulu|t7_pbt_loot_theme_reaper_body1_zulu
+B|6|24|HEROES_REAPER_PINBALL|Pinball|t7_pbt_loot_theme_reaper_body2_pinball
+B|6|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_reaper_body3_panda
+B|6|26|HEROES_REAPER_TARANTULA|Tarantula|t7_pbt_loot_theme_reaper_body2_tarantula
+B|6|27|HEROES_REAPER_HEARSE|Hearse|t7_pbt_loot_theme_reaper_body3_hearse
+B|6|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_reaper_body3_ardent
+B|6|29|HEROES_REAPER_PUZZLE|Puzzle|t7_pbt_loot_theme_reaper_body1_puzzle
+B|6|30|HEROES_REAPER_COVERT|Covert|t7_pbt_loot_theme_reaper_body1_covert
+B|6|31|HEROES_REAPER_ROYALORDER|Royal Order|t7_pbt_loot_theme_reaper_body3_royalorder
+B|6|32|HEROES_REAPER_FRACTURE|Fracture|t7_pbt_loot_theme_reaper_body2_fracture
+B|6|33|HEROES_REAPER_TIME_TO_DIE|Time To Die|t7_pbt_loot_theme_reaper_body3_time_to_die
+B|6|34|HEROES_REAPER_FSTOP|F-Stop|t7_pbt_loot_theme_reaper_body3_fstop
+B|6|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_reaper_body1_permafrost
+B|6|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_reaper_body2_hive
+B|6|37|HEROES_REAPER_MACH3|Mach 3|t7_pbt_loot_theme_reaper_body1_mach3
+M|6|0|HEROES_REAPER_UNIQUE_01|OEM|t7_icon_pbt_mp_reaper_head1_skin1_rwd
+M|6|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_reaper_head1_skin2_rwd
+M|6|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_reaper_head1_skin3_rwd
+M|6|3|HEROES_REAPER_UNIQUE_02|Stalker|t7_icon_pbt_mp_reaper_head2_skin1_rwd
+M|6|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_reaper_head2_skin2_rwd
+M|6|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_reaper_head2_skin3_rwd
+M|6|6|HEROES_REAPER_SPECIAL_01|Retrograde|t7_icon_pbt_mp_reaper_head3_skin1_rwd
+M|6|7|HEROES_REAPER_SPECIAL_02|High Tech|t7_icon_pbt_mp_reaper_head4_skin1_rwd
+M|6|8|HEROES_REAPER_EPIC|Junkyard|t7_icon_pbt_mp_reaper_head3_skin2_rwd
+M|6|9|HEROES_REAPER_UBER|Hero|t7_icon_pbt_mp_reaper_head4_skin2_rwd
+M|6|10|HEROES_SKY|Sky|t7_pbt_loot_reaper_head3_skin3
+M|6|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_reaper_head1_night
+M|6|12|HEROES_REAPER_INVADER|Invader|t7_pbt_loot_reaper_head4_skin3
+M|6|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_reaper_head2_caterpillar
+M|6|14|HEROES_REAPER_SCRIBE|Scribe|t7_pbt_loot_theme_reaper_head1_scribe
+M|6|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_reaper_head4_geist
+M|6|16|HEROES_REAPER_JESTER|Jester|t7_pbt_loot_theme_reaper_head2_jester
+M|6|17|HEROES_REAPER_MAGGOT|Maggot|t7_pbt_loot_theme_reaper_head4_maggot
+M|6|18|HEROES_REAPER_SUPER_CAR|R.P.M.|t7_pbt_loot_theme_reaper_head1_supercar
+M|6|19|HEROES_REAPER_HYDRO|Hydro|t7_pbt_loot_theme_reaper_head3_abyss
+M|6|20|HEROES_REAPER_SERIES_4|Series 4|t7_pbt_loot_theme_reaper_head4_series4
+M|6|21|HEROES_REAPER_WARDEN|Warden|t7_pbt_loot_theme_reaper_head5_warden
+M|6|22|HEROES_REAPER_GRAPHIC|Graphic|t7_pbt_loot_theme_reaper_head6_graphic
+M|6|23|HEROES_REAPER_ZULU|Zulu|t7_pbt_loot_theme_reaper_head2_zulu
+M|6|24|HEROES_REAPER_PINBALL|Pinball|t7_pbt_loot_theme_reaper_head3_pinball
+M|6|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_reaper_head5_panda
+M|6|26|HEROES_REAPER_TARANTULA|Tarantula|t7_pbt_loot_theme_reaper_head4_tarantula
+M|6|27|HEROES_REAPER_HEARSE|Hearse|t7_pbt_loot_theme_reaper_head6_hearse
+M|6|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_reaper_head3_ardent
+M|6|29|HEROES_REAPER_PUZZLE|Puzzle|t7_pbt_loot_theme_reaper_head6_puzzle
+M|6|30|HEROES_REAPER_COVERT|Covert|t7_pbt_loot_theme_reaper_head5_covert
+M|6|31|HEROES_REAPER_ROYALORDER|Royal Order|t7_pbt_loot_theme_reaper_head5_royalorder
+M|6|32|HEROES_REAPER_FRACTURE|Fracture|t7_pbt_loot_theme_reaper_head1_fracture
+M|6|33|HEROES_REAPER_TIME_TO_DIE|Time To Die|t7_pbt_loot_theme_reaper_head6_time_to_die
+M|6|34|HEROES_REAPER_FSTOP|F-Stop|t7_pbt_loot_theme_reaper_head5_fstop
+M|6|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_reaper_head1_permafrost
+M|6|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_reaper_head4_hive
+M|6|37|HEROES_REAPER_MACH3|Mach 3|t7_pbt_loot_theme_reaper_head1_mach3
+H|7|pbt_mp_spectre|HEROES_SPECTRE|Spectre|false
+B|7|0|HEROES_SPECTRE_UNIQUE_01|Assassin|t7_icon_pbt_mp_spectre_body1_skin1_rwd
+B|7|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_spectre_body1_skin2_rwd
+B|7|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_spectre_body1_skin3_rwd
+B|7|3|HEROES_SPECTRE_UNIQUE_02|Hitman|t7_icon_pbt_mp_spectre_body2_skin1_rwd
+B|7|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_spectre_body2_skin2_rwd
+B|7|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_spectre_body2_skin3_rwd
+B|7|6|HEROES_SPECTRE_SPECIAL_01|Bones|t7_icon_pbt_mp_spectre_body1_skin4_rwd
+B|7|7|HEROES_SPECTRE_SPECIAL_02|Driver|t7_icon_pbt_mp_spectre_body2_skin4_rwd
+B|7|8|HEROES_SPECTRE_EPIC|Chameleon|t7_icon_pbt_mp_spectre_body1_skin5_rwd
+B|7|9|HEROES_SPECTRE_UBER|Hero|t7_icon_pbt_mp_spectre_body2_skin5_rwd
+B|7|10|HEROES_SKY|Sky|t7_pbt_loot_spectre_body1_skin6
+B|7|11|HEROES_NIGHT|Night|t7_pbt_loot_spectre_body2_skin6
+B|7|12|HEROES_SPECTRE_PSYCHODELIC|Psycho-delic|t7_pbt_loot_spectre_body1_skin7
+B|7|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_spectre_body2_caterpillar
+B|7|14|HEROES_SPECTRE_ILLUMINATI|Illuminati|t7_pbt_loot_theme_spectre_body1_illuminati
+B|7|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_spectre_body1_geist
+B|7|16|HEROES_SPECTRE_VENOM|Venom|t7_pbt_loot_theme_spectre_body2_venom
+B|7|17|HEROES_SPECTRE_KABUKI|Kabuki|t7_pbt_loot_theme_spectre_body2_kabuki
+B|7|18|HEROES_SPECTRE_TOON_TOWN|Cel-Mate|t7_pbt_loot_theme_spectre_body1_toontown
+B|7|19|HEROES_SPECTRE_DARKSTAR|Dark Star|t7_pbt_loot_theme_spectre_body1_darkstar
+B|7|20|HEROES_SPECTRE_DRAGONFLY|Dragonfly|t7_pbt_loot_theme_spectre_body2_dragonfly
+B|7|21|HEROES_SPECTRE_SHANK|Shank|t7_pbt_loot_theme_spectre_body1_shank
+B|7|22|HEROES_SPECTRE_JOUST|Joust|t7_pbt_loot_theme_spectre_body2_joust
+B|7|23|HEROES_SPECTRE_YELLOW_JACKET|Yellow Jacket|t7_pbt_loot_theme_spectre_body3_yellowjacket
+B|7|24|HEROES_SPECTRE_CHROME|Chrome|t7_pbt_loot_theme_spectre_body3_chrome
+B|7|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_spectre_body3_panda
+B|7|26|HEROES_SPECTER_SURGEON|Surgeon|t7_pbt_loot_theme_spectre_body2_surgeon
+B|7|27|HEROES_SPECTRE_PHANTOM|Phantom|t7_pbt_loot_theme_spectre_body3_phantom
+B|7|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_spectre_body3_ardent
+B|7|29|HEROES_SPECTRE_CRASH|Crash|t7_pbt_loot_theme_spectre_body1_crash
+B|7|30|HEROES_SPECTRE_GALACTIC|Galactic|t7_pbt_loot_theme_spectre_body1_galactic
+B|7|31|HEROES_SPECTRE_ULTRA9|U.L.T.R.A. 9|t7_pbt_loot_theme_spectre_body3_ultra9
+B|7|32|HEROES_SPECTRE_ZAP|Zap|t7_pbt_loot_theme_spectre_body2_zap
+B|7|33|HEROES_SPECTRE_MASQUERADE|Masquerade|t7_pbt_loot_theme_spectre_body3_masquerade
+B|7|34|HEROES_SPECTRE_AYAKASHI|Ayakashi|t7_pbt_loot_theme_spectre_body3_ayakashi
+B|7|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_spectre_body1_permafrost
+B|7|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_spectre_body1_hive
+B|7|37|HEROES_SPECTRE_BOUNTYHUNTER|Red Jack|t7_pbt_loot_theme_spectre_body2_bountyhunter
+M|7|0|HEROES_SPECTRE_UNIQUE_01|Assassin|t7_icon_pbt_mp_spectre_head1_skin1_rwd
+M|7|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_spectre_head1_skin2_rwd
+M|7|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_spectre_head1_skin3_rwd
+M|7|3|HEROES_SPECTRE_UNIQUE_02|Hitman|t7_icon_pbt_mp_spectre_head2_skin1_rwd
+M|7|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_spectre_head2_skin2_rwd
+M|7|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_spectre_head2_skin3_rwd
+M|7|6|HEROES_SPECTRE_SPECIAL_01|Bones|t7_icon_pbt_mp_spectre_head3_skin1_rwd
+M|7|7|HEROES_SPECTRE_SPECIAL_02|Driver|t7_icon_pbt_mp_spectre_head4_skin1_rwd
+M|7|8|HEROES_SPECTRE_EPIC|Chameleon|t7_icon_pbt_mp_spectre_head3_skin2_rwd
+M|7|9|HEROES_SPECTRE_UBER|Hero|t7_icon_pbt_mp_spectre_head4_skin2_rwd
+M|7|10|HEROES_SKY|Sky|t7_pbt_loot_spectre_head3_skin3
+M|7|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_spectre_head1_night
+M|7|12|HEROES_SPECTRE_PSYCHODELIC|Psycho-delic|t7_pbt_loot_spectre_head4_skin3
+M|7|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_spectre_head2_caterpillar
+M|7|14|HEROES_SPECTRE_ILLUMINATI|Illuminati|t7_pbt_loot_theme_spectre_head1_illuminati
+M|7|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_spectre_head4_geist
+M|7|16|HEROES_SPECTRE_VENOM|Venom|t7_pbt_loot_theme_spectre_head2_venom
+M|7|17|HEROES_SPECTRE_KABUKI|Kabuki|t7_pbt_loot_theme_spectre_head4_kabuki
+M|7|18|HEROES_SPECTRE_TOON_TOWN|Cel-Mate|t7_pbt_loot_theme_spectre_head1_toontown
+M|7|19|HEROES_SPECTRE_DARKSTAR|Dark Star|t7_pbt_loot_theme_spectre_head3_darkstar
+M|7|20|HEROES_SPECTRE_DRAGONFLY|Dragonfly|t7_pbt_loot_theme_spectre_head4_dragonfly
+M|7|21|HEROES_SPECTRE_SHANK|Shank|t7_pbt_loot_theme_spectre_head2_shank
+M|7|22|HEROES_SPECTRE_JOUST|Joust|t7_pbt_loot_theme_spectre_head3_joust
+M|7|23|HEROES_SPECTRE_YELLOW_JACKET|Yellow Jacket|t7_pbt_loot_theme_spectre_head5_yellowjacket
+M|7|24|HEROES_SPECTRE_CHROME|Chrome|t7_pbt_loot_theme_spectre_head6_chrome
+M|7|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_spectre_head5_panda
+M|7|26|HEROES_SPECTER_SURGEON|Surgeon|t7_pbt_loot_theme_spectre_head4_surgeon
+M|7|27|HEROES_SPECTRE_PHANTOM|Phantom|t7_pbt_loot_theme_spectre_head6_phantom
+M|7|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_spectre_head3_ardent
+M|7|29|HEROES_SPECTRE_CRASH|Crash|t7_pbt_loot_theme_spectre_head6_crash
+M|7|30|HEROES_SPECTRE_GALACTIC|Galactic|t7_pbt_loot_theme_spectre_head5_galactic
+M|7|31|HEROES_SPECTRE_ULTRA9|U.L.T.R.A. 9|t7_pbt_loot_theme_spectre_head5_ultra9
+M|7|32|HEROES_SPECTRE_ZAP|Zap|t7_pbt_loot_theme_spectre_head1_zap
+M|7|33|HEROES_SPECTRE_MASQUERADE|Masquerade|t7_pbt_loot_theme_spectre_head6_masquerade
+M|7|34|HEROES_SPECTRE_AYAKASHI|Ayakashi|t7_pbt_loot_theme_spectre_head5_ayakashi
+M|7|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_spectre_head4_permafrost
+M|7|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_spectre_head1_hive
+M|7|37|HEROES_SPECTRE_BOUNTYHUNTER|Red Jack|t7_pbt_loot_theme_spectre_head6_bountyhunter
+H|8|pbt_mp_firebreak|HEROES_FIREBREAK|Firebreak|false
+B|8|0|HEROES_FIREBREAK_UNIQUE_01|Pyro|t7_icon_pbt_mp_firebreak_body1_skin1_rwd
+B|8|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_firebreak_body1_skin2_rwd
+B|8|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_firebreak_body1_skin3_rwd
+B|8|3|HEROES_FIREBREAK_UNIQUE_02|BRN|t7_icon_pbt_mp_firebreak_body2_skin1_rwd
+B|8|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_firebreak_body2_skin2_rwd
+B|8|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_firebreak_body2_skin3_rwd
+B|8|6|HEROES_FIREBREAK_SPECIAL_01|E.O.D.|t7_icon_pbt_mp_firebreak_body1_skin4_rwd
+B|8|7|HEROES_FIREBREAK_SPECIAL_02|Biohazard|t7_icon_pbt_mp_firebreak_body2_skin4_rwd
+B|8|8|HEROES_FIREBREAK_EPIC|Diablo|t7_icon_pbt_mp_firebreak_body1_skin5_rwd
+B|8|9|HEROES_FIREBREAK_UBER|Hero|t7_icon_pbt_mp_firebreak_body2_skin5_rwd
+B|8|10|HEROES_SKY|Sky|t7_pbt_loot_firebreak_body1_skin6
+B|8|11|HEROES_NIGHT|Night|t7_pbt_loot_firebreak_body2_skin6
+B|8|12|HEROES_FIREBREAK_WINTER_BONE|Winter Bone|t7_pbt_loot_firebreak_body1_skin7
+B|8|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_firebreak_body2_caterpillar
+B|8|14|HEROES_FIREBREAK_OCEANIC|Oceanic|t7_pbt_loot_theme_firebreak_body1_oceanic
+B|8|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_firebreak_body1_geist
+B|8|16|HEROES_FIREBREAK_EVICTION|Eviction|t7_pbt_loot_theme_firebreak_body2_eviction
+B|8|17|HEROES_FIREBREAK_DAVEY_JONES|Depth Charge|t7_pbt_loot_theme_firebreak_body2_davey_jones
+B|8|18|HEROES_FIREBREAK_EVIL_CLOWN|Giggles|t7_pbt_loot_theme_firebreak_body1_evil_clown
+B|8|19|HEROES_FIREBREAK_REPTILE|Reptile|t7_pbt_loot_theme_firebreak_body1_reptile
+B|8|20|HEROES_FIREBREAK_BAROQUE|Baroque|t7_pbt_loot_theme_firebreak_body2_baroque
+B|8|21|HEROES_FIREBREAK_GOON|Goon|t7_pbt_loot_theme_firebreak_body1_goon
+B|8|22|HEROES_FIREBREAK_OUTBREAK|Outbreak|t7_pbt_loot_theme_firebreak_body2_outbreak
+B|8|23|HEROES_FIREBREAK_ORBIT|Orbit|t7_pbt_loot_theme_firebreak_body3_orbit
+B|8|24|HEROES_FIREBREAK_SOLAR|Solar|t7_pbt_loot_theme_firebreak_body3_solar
+B|8|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_firebreak_body3_panda
+B|8|26|HEROES_FIREBREAK_COMBUSTION|Combustion|t7_pbt_loot_theme_firebreak_body2_combustion
+B|8|27|HEROES_FIREBREAK_JACK_O_LANTERN|Jack-O-Lantern|t7_pbt_loot_theme_firebreak_body3_jackolantern
+B|8|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_firebreak_body3_ardent
+B|8|29|HEROES_FIREBREAK_SPEEDSTER|Speedster|t7_pbt_loot_theme_firebreak_body1_speedster
+B|8|30|HEROES_FIREBREAK_FATE|Fate|t7_pbt_loot_theme_firebreak_body1_fate
+B|8|31|HEROES_FIREBREAK_MOLTEN|Molten|t7_pbt_loot_theme_firebreak_body3_molten
+B|8|32|HEROES_FIREBREAK_FUMIGATE|Fumigate|t7_pbt_loot_theme_firebreak_body2_fumigate
+B|8|33|HEROES_FIREBREAK_VOID|Void|t7_pbt_loot_theme_firebreak_body3_void
+B|8|34|HEROES_FIREBREAK_ABYSS|Abyss|t7_pbt_loot_theme_firebreak_body3_abyss
+B|8|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_firebreak_body3_permafrost
+B|8|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_firebreak_body1_hive
+B|8|37|HEROES_FIREBREAK_FLASHPOINT|Flashpoint|t7_pbt_loot_theme_firebreak_body2_flashpoint
+M|8|0|HEROES_FIREBREAK_UNIQUE_01|Pyro|t7_icon_pbt_mp_firebreak_head1_skin1_rwd
+M|8|1|HEROES_ARCTIC|Arctic|t7_icon_pbt_mp_firebreak_head1_skin2_rwd
+M|8|2|HEROES_JUNGLE|Jungle|t7_icon_pbt_mp_firebreak_head1_skin3_rwd
+M|8|3|HEROES_FIREBREAK_UNIQUE_02|BRN|t7_icon_pbt_mp_firebreak_head2_skin1_rwd
+M|8|4|HEROES_E_SPORTS|Professional|t7_icon_pbt_mp_firebreak_head2_skin2_rwd
+M|8|5|HEROES_EARTH|Earth|t7_icon_pbt_mp_firebreak_head2_skin3_rwd
+M|8|6|HEROES_FIREBREAK_SPECIAL_01|E.O.D.|t7_icon_pbt_mp_firebreak_head3_skin1_rwd
+M|8|7|HEROES_FIREBREAK_SPECIAL_02|Biohazard|t7_icon_pbt_mp_firebreak_head4_skin1_rwd
+M|8|8|HEROES_FIREBREAK_EPIC|Diablo|t7_icon_pbt_mp_firebreak_head3_skin2_rwd
+M|8|9|HEROES_FIREBREAK_UBER|Hero|t7_icon_pbt_mp_firebreak_head4_skin2_rwd
+M|8|10|HEROES_SKY|Sky|t7_pbt_loot_firebreak_head3_skin3
+M|8|11|HEROES_NIGHT|Night|t7_pbt_loot_theme_firebreak_head1_night
+M|8|12|HEROES_FIREBREAK_WINTER_BONE|Winter Bone|t7_pbt_loot_firebreak_head4_skin3
+M|8|13|HEROES_CATERPILLAR|Caterpillar|t7_pbt_loot_theme_firebreak_head2_caterpillar
+M|8|14|HEROES_FIREBREAK_OCEANIC|Oceanic|t7_pbt_loot_theme_firebreak_head1_oceanic
+M|8|15|HEROES_GEIST|Geist|t7_pbt_loot_theme_firebreak_head4_geist
+M|8|16|HEROES_FIREBREAK_EVICTION|Eviction|t7_pbt_loot_theme_firebreak_head2_eviction
+M|8|17|HEROES_FIREBREAK_DAVEY_JONES|Depth Charge|t7_pbt_loot_theme_firebreak_head4_davey_jones
+M|8|18|HEROES_FIREBREAK_EVIL_CLOWN|Giggles|t7_pbt_loot_theme_firebreak_head1_evil_clown
+M|8|19|HEROES_FIREBREAK_REPTILE|Reptile|t7_pbt_loot_theme_firebreak_head3_reptile
+M|8|20|HEROES_FIREBREAK_BAROQUE|Baroque|t7_pbt_loot_theme_firebreak_head4_baroque
+M|8|21|HEROES_FIREBREAK_GOON|Goon|t7_pbt_loot_theme_firebreak_head2_goon
+M|8|22|HEROES_FIREBREAK_OUTBREAK|Outbreak|t7_pbt_loot_theme_firebreak_head3_outbreak
+M|8|23|HEROES_FIREBREAK_ORBIT|Orbit|t7_pbt_loot_theme_firebreak_head5_orbit
+M|8|24|HEROES_FIREBREAK_SOLAR|Solar|t7_pbt_loot_theme_firebreak_head6_solar
+M|8|25|HEROES_PANDA|Panda|t7_pbt_loot_theme_firebreak_head5_panda
+M|8|26|HEROES_FIREBREAK_COMBUSTION|Combustion|t7_pbt_loot_theme_firebreak_head4_combustion
+M|8|27|HEROES_FIREBREAK_JACK_O_LANTERN|Jack-O-Lantern|t7_pbt_loot_theme_firebreak_head6_jackolantern
+M|8|28|HEROES_ARDENT|Ardent|t7_pbt_loot_theme_firebreak_head3_ardent
+M|8|29|HEROES_FIREBREAK_SPEEDSTER|Speedster|t7_pbt_loot_theme_firebreak_head6_speedster
+M|8|30|HEROES_FIREBREAK_FATE|Fate|t7_pbt_loot_theme_firebreak_head5_fate
+M|8|31|HEROES_FIREBREAK_MOLTEN|Molten|t7_pbt_loot_theme_firebreak_head5_molten
+M|8|32|HEROES_FIREBREAK_FUMIGATE|Fumigate|t7_pbt_loot_theme_firebreak_head1_fumigate
+M|8|33|HEROES_FIREBREAK_VOID|Void|t7_pbt_loot_theme_firebreak_head6_void
+M|8|34|HEROES_FIREBREAK_ABYSS|Abyss|t7_pbt_loot_theme_firebreak_head5_abyss
+M|8|35|HEROES_PERMAFROST|Permafrost|t7_pbt_loot_theme_firebreak_head6_permafrost
+M|8|36|HEROES_HIVE|Hive|t7_pbt_loot_theme_firebreak_head4_hive
+M|8|37|HEROES_FIREBREAK_FLASHPOINT|Flashpoint|t7_pbt_loot_theme_firebreak_head1_flashpoint
+H|9|pbt_mp_blackmarket|HEROES_BLACKJACK|Blackjack|false
+B|9|0|BODY|BODY|t7_menu_mp_chars_mercenary_body_custom01
+M|9|0|HEAD|HEAD|hud_ctf_flag_icon_red
+M|9|1|HEAD|HEAD|hud_ctf_flag_icon_red

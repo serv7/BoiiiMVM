@@ -10,6 +10,7 @@
 #include "controls_mailbox.hpp"
 #include "playback_helper.hpp"
 #include "memory_regions.hpp"
+#include "outfit_menu.hpp"
 #include <MH/MinHook.h>
 #include <mutex>
 #include <deque>
@@ -594,11 +595,13 @@ bool initialize_backend() {
             bot_menu_flag=reinterpret_cast<const unsigned char*>(host+flag_rva);
             log_message("Bot menu input block ready");
         } else log_message("Bot menu input block unavailable: client build not recognised");
+        outfit_menu::initialize(host,[](const char* text){log_message(text);});
     }
     log_message("Exact game build verified; theater backend enabled");return true;
 }
 void shutdown_backend() {
     playback_helper::shutdown();
+    outfit_menu::shutdown();
     if(base) {
         MH_DisableHook(reinterpret_cast<void*>(base+profile::main_frame));
         MH_DisableHook(reinterpret_cast<void*>(base+profile::camera_frame.rva));
