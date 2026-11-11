@@ -2,7 +2,7 @@
 
 [![Watch the 40-second installation video](video/install-cover.jpg)](https://serv7.github.io/BoiiiMVM/)
 
-**[Watch the installation video](https://serv7.github.io/BoiiiMVM/)** before copying files. The crucial launch steps are to run the supplied **`boiii.exe`, not `BlackOps3.exe`**, and press **Cancel** if the BOIII Patch Installer offers to download a different game executable.
+**[Watch the installation video](https://serv7.github.io/BoiiiMVM/)** before copying files. The crucial launch steps are to run the supplied **`boiii.exe`, not `BlackOps3.exe`**. The supplied client no longer shows the BOIII Patch Installer prompt; with an older client, press **Cancel** if it offers to download a different game executable.
 
 ## Requirements
 
@@ -12,7 +12,7 @@ You need Windows 10/11 x64 and an installed copy of Call of Duty: Black Ops III.
 2. Close the game and BOIII. Back up the `boiii.exe` and `boiii` folder already in the same folder as your `BlackOps3.exe`. Also back up `%LOCALAPPDATA%\boiii\data` if present. Preserve your personal configs, recordings, and film files.
 3. Copy the extracted `boiii.exe`, `boiii` folder, and `MVM` folder into the folder containing `BlackOps3.exe`. Merge folders and replace the supplied files. Do not copy the enclosing ZIP folder.
 4. Open `%LOCALAPPDATA%\boiii` using Win+R. Copy `boiii\data` from the extracted ZIP into that location so the result is `%LOCALAPPDATA%\boiii\data`. Merge with the backup as needed. BOIII reads these runtime UI assets from AppData.
-5. **Launch the supplied `boiii.exe`, not `BlackOps3.exe`,** from the BO3 game folder with `-noupdate`. If the **BOIII Patch Installer** prompt appears, **press Cancel**. Use a private custom match for the bot mod or load a saved multiplayer film for the theater tools.
+5. **Launch the supplied `boiii.exe`, not `BlackOps3.exe`,** from the BO3 game folder with `-noupdate`. The supplied client skips the **BOIII Patch Installer** prompt; if an older client shows it, **press Cancel**. Use a private custom match for the bot mod or load a saved multiplayer film for the theater tools.
 
 ![BOIII Patch Installer prompt: press Cancel](images/boiii-patch-prompt.png)
 

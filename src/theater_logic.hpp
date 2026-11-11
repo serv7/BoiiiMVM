@@ -16,62 +16,90 @@ inline float timeline_fraction(int tick,int start,int end) {
 inline int timeline_tick(float fraction,int start,int end) {
     return end>start?int(start+std::clamp(fraction,0.f,1.f)*(double(end)-start)):start;
 }
-// Getting to an exact demo tick, the way T6MVM's DemoSeek does it in BO2. The engine's demo_back /
-// demo_forward land on its own snapshot points, which can be short of the target (or barely move
-// forward into parts of the film not played yet). So after the jump the film plays fast and slows
-// down onto the target; if it ended up past the target it jumps back again (a few times at most).
+// Getting to an exact demo tick. Measured on the game (theater.log, 2026-11-10):
+//  - demo_back lands on the film's last stored snapshot at or before its tick, and those are 30
+//    seconds apart; demo_forward lands on the one after its tick, which can be past the target.
+//  - The game's own marker jump goes straight to the tick without playing the lead-up, so deaths
+//    and physics that started just before come out different from a normal playthrough.
+//  - demo_pause takes a frame or more to apply and then steps the time back a few milliseconds.
+// So a seek jumps to a snapshot before the target, plays the film up to the target (fast, slowing
+// onto the tick), and if it has to end paused it pauses at crawl speed before the normal speed is
+// restored. All waits are real milliseconds, so the frame rate doesn't change the behaviour.
 struct seek_step {
-    enum kind { none, jump, set_speed, finish } type=none;
-    int tick=0;               // jump: target tick
-    float speed=1;            // set_speed / finish: playback speed to set
+    enum kind { none, jump_back, jump_forward, set_speed, finish } type=none;
+    int tick=0;               // jump: the tick to send; finish: where the film is
+    float speed=1;            // playback speed to set this frame
     bool toggle_pause=false;  // send one demo_pause (it toggles)
+    bool reached=true;        // finish: false when it gave up before the target
 };
 class seek_controller {
-    int settle=0,frames=0,stalled=0,jumps=0,last=0,unpause_wait=0;
-    float restore=1;bool pause_at_end=false,unpause_sent=false;
+    enum class phase { jumping, running, stopping } stage=phase::running;
+    int first=0,jump_to=0,issued=0,jumps=0,pause_tries=0,last=0;
+    double waited=0,pause_wait=0,stalled=0;
+    float restore=1;bool end_paused=false,careful=false;
+    seek_step done(int now,bool reached) {active=false;return {seek_step::finish,now,restore,false,reached};}
+    // One demo_pause, then time for it to apply before another is sent. Repeated toggles around a
+    // jump broke the first-person view.
+    seek_step toggle_once(int now,double elapsed) {
+        if(pause_tries==0 || pause_wait>=pause_wait_ms) {
+            if(pause_tries>=max_pause_tries)return done(now,false);
+            ++pause_tries;pause_wait=0;return {seek_step::set_speed,0,crawl,true};
+        }
+        pause_wait+=elapsed;return {seek_step::set_speed,0,crawl};
+    }
 public:
-    // 10x is the game's own top speed; the jump gets close, so only the last few seconds are played.
-    static constexpr float settle_speed=.05f,max_speed=10.f;
-    static constexpr int settle_frames=3,max_jumps=3,max_frames=6000,max_stalled=120,overshoot=50,unpause_frames=30;
+    // 10x is the game's own top speed. A careful seek plays the last stretch near normal speed.
+    static constexpr float crawl=.02f,max_speed=10.f,careful_speed=2.f;
+    static constexpr int play_only_ms=12000,careful_ms=2000,landed_ms=20,past_ms=50,snapshot_ms=30000,max_jumps=4,max_pause_tries=3;
+    static constexpr double jump_wait_ms=1500,pause_wait_ms=1500,stall_ms=4000;
     bool active=false;int target=0;
-    // Call when the jump command for target has just been sent.
-    void start(int target_tick,int now,bool paused,float speed) {
-        active=true;target=target_tick;restore=std::isfinite(speed) && speed>0?speed:1.f;pause_at_end=paused;
-        settle=settle_frames;frames=0;stalled=0;jumps=0;last=now;unpause_sent=false;unpause_wait=0;
+    // Returns the first thing to do. preroll: how much film before the target must be played.
+    seek_step start(int target_tick,int now,int first_tick,bool paused_at_end,float speed,int preroll,bool careful_end) {
+        active=true;target=target_tick;first=first_tick;end_paused=paused_at_end;careful=careful_end;
+        restore=std::isfinite(speed) && speed>0?speed:1.f;
+        waited=pause_wait=stalled=0;jumps=pause_tries=0;last=now;
+        jump_to=std::max(first,target-std::max(0,preroll));
+        // A little way ahead: just play there, no snapshot load.
+        if(target>now && target-now<=play_only_ms && jump_to>=now) {stage=phase::running;return {seek_step::set_speed,0,crawl};}
+        stage=phase::jumping;issued=now;jumps=1;
+        return {jump_to<now?seek_step::jump_back:seek_step::jump_forward,jump_to,crawl};
     }
     void cancel(){active=false;}
-    seek_step finish(int now,bool paused) {
-        active=false;
-        // One toggle at most, and only if the state differs from how the user left it.
-        return {seek_step::finish,now,restore,pause_at_end!=paused};
-    }
     seek_step frame(int now,int end,bool paused,double frame_ms) {
         if(!active)return {};
-        ++frames;
-        if(settle>0) {
-            // The tick follows a jump a frame or two late; creep meanwhile so the target isn't passed.
-            if(--settle==0 && now>target+overshoot && jumps<max_jumps) {
-                ++jumps;settle=settle_frames;
-                return {seek_step::jump,target,settle_speed};
+        const double elapsed=std::clamp(frame_ms,0.,250.);
+        if(stage==phase::jumping) {
+            waited+=elapsed;
+            const bool moved=std::abs(now-issued)>landed_ms;
+            if(!moved && waited<jump_wait_ms)return {seek_step::set_speed,0,crawl};
+            if(now>target+past_ms) {
+                // Landed after the target (a forward jump does): go back to a snapshot before it,
+                // one snapshot further each time.
+                if(jumps>=max_jumps)return done(now,false);
+                if(jumps>=2)jump_to=std::max(first,jump_to-snapshot_ms);
+                ++jumps;issued=now;waited=0;
+                return {seek_step::jump_back,jump_to,crawl};
             }
-            if(settle>0)return {seek_step::set_speed,0,settle_speed};
+            stage=phase::running;stalled=0;last=now;pause_tries=0;pause_wait=0;
         }
-        const int remaining=target-now;
-        const bool film_over=end>0 && now>=end-1;
-        if(remaining<=0 || frames>max_frames || film_over)return finish(now,paused);
-        if(paused) {
-            // The film has to run to get there. demo_pause toggles: send it once, never repeatedly
-            // (dozens of toggles around a jump broke the first-person view). If it doesn't take, stay
-            // where the jump landed.
-            if(!unpause_sent){unpause_sent=true;unpause_wait=0;return {seek_step::set_speed,0,settle_speed,true};}
-            if(++unpause_wait>unpause_frames)return finish(now,paused);
-            return {seek_step::set_speed,0,settle_speed};
+        if(stage==phase::running) {
+            const int remaining=target-now;
+            const bool film_over=end>0 && now>=end-1;
+            if(remaining>0 && !film_over) {
+                if(paused)return toggle_once(now,elapsed); // the film has to run to get there
+                pause_tries=0;
+                stalled=now>last?0:stalled+elapsed;last=now;
+                if(stalled>stall_ms)return done(now,false);
+                // Cover about half the remaining time each frame: full speed far away, slowing onto the tick.
+                const float cap=careful && remaining<=careful_ms?careful_speed:max_speed;
+                return {seek_step::set_speed,0,float(std::clamp(remaining*.5/std::max(elapsed,1.),double(crawl),double(cap)))};
+            }
+            if(!end_paused)return done(now,!film_over || remaining<=0);
+            stage=phase::stopping;pause_tries=0;pause_wait=0;
         }
-        stalled=now>last?0:stalled+1;last=now;
-        if(stalled>max_stalled)return finish(now,paused);
-        // Cover about half the remaining time each frame: full speed far away, slowing onto the tick.
-        const double ms=std::clamp(frame_ms,1.,100.);
-        return {seek_step::set_speed,0,float(std::clamp(remaining*.5/ms,double(settle_speed),double(max_speed)))};
+        // Arrived and it has to end paused: pause while still crawling, then hand the speed back.
+        if(paused)return done(now,true);
+        return toggle_once(now,elapsed);
     }
 };
 inline constexpr std::array<float, 26> speeds = {

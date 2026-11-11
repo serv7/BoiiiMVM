@@ -48,7 +48,10 @@ void (*angles_transfer_original)(const void*,void*)=nullptr;
 void (*movement_original)(void*)=nullptr;
 movement_scaler movement;
 demo_clock path_clock;double render_tick=0;LONGLONG camera_counter=0,movement_counter=0;
-seek_controller seeker;float seek_restore_speed=1;bool seek_restore_paused=false;LONGLONG seek_counter=0;
+seek_controller seeker;float seek_restore_speed=1;bool seek_restore_paused=false,seek_then_dolly=false;LONGLONG seek_counter=0;
+// How much film is always played before a seek's target, so what started just before it is right.
+constexpr int seek_preroll_ms=1500,first_camera_preroll_ms=5000;
+const unsigned char* bot_menu_flag=nullptr;bool bot_menu_blocking=false;
 double elapsed_ms(LONGLONG& previous) {
     LARGE_INTEGER now,frequency;QueryPerformanceCounter(&now);QueryPerformanceFrequency(&frequency);
     double result=previous?double(now.QuadPart-previous)*1000./frequency.QuadPart:1000./60.;previous=now.QuadPart;
@@ -153,6 +156,37 @@ void load_path() {
     }
     message="Imported camera coordinates and lens values";
 }
+void cancel_seek(){seeker.cancel();seek_then_dolly=false;}
+// Carry out one step the seek controller asks for (see theater_logic.hpp).
+void apply_seek_step(const seek_step& step) {
+    auto set_speed=function<void(*)(float)>(profile::set_timescale);
+    switch(step.type) {
+    case seek_step::jump_back: command("demo_back "+std::to_string(step.tick));set_speed(step.speed);break;
+    case seek_step::jump_forward: command("demo_forward "+std::to_string(step.tick));set_speed(step.speed);break;
+    case seek_step::set_speed:
+        set_speed(step.speed);
+        if(step.toggle_pause)command("demo_pause");
+        break;
+    case seek_step::finish: {
+        set_speed(step.speed);
+        log_message(std::string("Seek: ")+(step.reached?"reached ":"stopped before ")+std::to_string(seeker.target)+" at "+std::to_string(step.tick));
+        const bool dolly=seek_then_dolly;seek_then_dolly=false;
+        if(dolly && step.reached){free_mode(2);message="At first camera, paused";}
+        else message=step.reached?"Seek done":"Seek stopped early";
+        break;
+    }
+    default: break;
+    }
+}
+void begin_seek(int target,int preroll,bool careful,bool end_paused,bool then_dolly) {
+    if(state.end_tick>state.start_tick)target=std::clamp(target,state.start_tick,state.end_tick-1);
+    // What to go back to afterwards: taken from before the first of back-to-back seeks.
+    if(!seeker.active){seek_restore_speed=field<float>(session,8);seek_restore_paused=state.paused;}
+    seek_then_dolly=then_dolly;
+    log_message("Seek: from "+std::to_string(state.tick)+" to "+std::to_string(target));
+    apply_seek_step(seeker.start(target,state.tick,state.start_tick,end_paused || (!then_dolly && seek_restore_paused),seek_restore_speed,preroll,careful));
+    message="Seeking...";
+}
 void execute(request r) {
     if(r.optics) {set_lens(*r.optics);manual_lens=true;return;}
     if(r.wheel) {
@@ -236,35 +270,32 @@ void execute(request r) {
         int amount=std::max(1,int(settings.seek_seconds*1000));
         // Steps go from where a running seek is heading, so repeated presses add up.
         int from=seeker.active?seeker.target:state.tick;
-        // BO3's optional argument is an absolute demo tick, not a duration.
         int target=r.type==action::seek_to?r.index:std::max(0,from+(r.type==action::seek_back?-amount:amount));
         if(state.end_tick>state.start_tick)target=std::clamp(target,state.start_tick,state.end_tick-1);
         if(target==state.tick && !seeker.active)break;
-        // The engine jump can land short of the target; seek_controller plays the rest (see theater_logic.hpp).
-        // What to go back to afterwards: taken from before the first of back-to-back seeks.
-        if(!seeker.active){seek_restore_speed=field<float>(session,8);seek_restore_paused=state.paused;}
-        command(std::string(target<state.tick?"demo_back ":"demo_forward ")+std::to_string(target));
-        seeker.start(target,state.tick,seek_restore_paused,seek_restore_speed);
-        message="Seeking...";
+        begin_seek(target,seek_preroll_ms,false,false,false);
         break;
     }
     case action::speed_down: case action::speed_up: {
-        seeker.cancel(); // the user takes over the speed
+        cancel_seek(); // the user takes over the speed
         float speed=step_speed(field<float>(session,8),r.type==action::speed_up?1:-1);
         // Bypass only the command's 0.1 lower bound. Use the native setter for all speeds.
         function<void(*)(float)>(profile::set_timescale)(speed);
         message="Playback speed changed"; break;
     }
     case action::speed_minimum:case action::speed_normal:case action::speed_maximum:
-        seeker.cancel();
+        cancel_seek();
         function<void(*)(float)>(profile::set_timescale)(r.type==action::speed_minimum?.01f:r.type==action::speed_maximum?10.f:1.f);
         message="Playback speed preset applied";break;
     case action::first_camera:
         if(cams.size()<2) {message="Place at least two cameras first";break;}
-        free_mode(1); command("demo_switchdollycammarker 0"); free_mode(2);
-        message="Jumped to first camera / Dolly"; break;
+        // The game's own marker jump goes straight to the tick without playing the lead-up, which
+        // threw the timing of a shot off. Seek there properly, end paused, then switch to the dolly.
+        manual_lens=false;
+        begin_seek(cams.front().tick,first_camera_preroll_ms,true,true,true);
+        break;
     case action::pause:
-        if(seeker.active){seeker.cancel();function<void(*)(float)>(profile::set_timescale)(seek_restore_speed);}
+        if(seeker.active){cancel_seek();function<void(*)(float)>(profile::set_timescale)(seek_restore_speed);}
         command("demo_pause"); break;
     case action::exit_film:
         menu_open=false;exit_dialog=false;capture::stop();
@@ -275,23 +306,27 @@ void execute(request r) {
     default: break;
     }
 }
-// Once per frame while a seek runs: carry out what seek_controller asks for.
+// Once per frame while a seek runs.
 void drive_seek() {
     if(!seeker.active){seek_counter=0;return;}
-    auto step=seeker.frame(state.tick,state.end_tick,state.paused,elapsed_ms(seek_counter));
-    auto set_speed=function<void(*)(float)>(profile::set_timescale);
-    switch(step.type) {
-    case seek_step::jump:
-        command("demo_back "+std::to_string(step.tick));set_speed(step.speed);break;
-    case seek_step::set_speed:
-        set_speed(step.speed);
-        if(step.toggle_pause)command("demo_pause");
-        break;
-    case seek_step::finish:
-        set_speed(step.speed);
-        if(step.toggle_pause)command("demo_pause");
-        message="Seek done";break;
-    default: break;
+    apply_seek_step(seeker.frame(state.tick,state.end_tick,state.paused,elapsed_ms(seek_counter)));
+}
+// The bot menu (Insert, part of boiii.exe) stops mouse movement reaching the game while it is open,
+// but clicks and keys still got through, so clicking in the menu fired the gun. While it is open in
+// a live match, hand input to the game's menu layer the way the pause menu does, and give it back
+// when the menu closes.
+void sync_bot_menu_input(bool film) {
+    if(!bot_menu_flag)return;
+    const bool open=!film && (*bot_menu_flag&1)!=0;
+    auto set=function<void(*)(int,bool)>(profile::lui_key_catcher);
+    if(open && !bot_menu_blocking) {
+        if(field<unsigned>(base,profile::key_catchers)&0x10u)return; // a game menu already has the input
+        native_calls::invoke(set,0,true);bot_menu_blocking=true;
+        log_message("Bot menu open: game input blocked");
+    } else if(!open && bot_menu_blocking) {
+        bot_menu_blocking=false;
+        if(!film)native_calls::invoke(set,0,false);
+        log_message("Bot menu closed: game input restored");
     }
 }
 // mvm_corpse.csc keeps its last hold-gun events in the dvar mvm_corpse_trace as
@@ -353,10 +388,12 @@ void update() {
     if(valid && applied_release_delay!=settings.weapon_release_delay) {
         command("set mvm_releasegun_delay "+std::to_string(settings.weapon_release_delay));applied_release_delay=settings.weapon_release_delay;
     }
-    if(!playing()) {
+    const bool film=playing();
+    if(valid)sync_bot_menu_input(film);
+    if(!film) {
         for(const auto& request:work)if(request.type==action::clear_bodies)command("botmod_clearbodies");
         if(owned) release_session();
-        seeker.cancel();
+        cancel_seek();
         state.playing=false;visible_state.publish(state);return;
     }
     uintptr_t new_session=field<uintptr_t>(base,profile::theater_pointer);
@@ -462,11 +499,14 @@ void camera_movement(void* cmd) {
     double step=elapsed_ms(movement_counter)*.001;
     if(settings.responsive_camera)field<vec3>(p,0x981a80)={};
     set_diagnostic_stage("camera_movement");
-    if(lift && !capture && readable(reinterpret_cast<uintptr_t>(cmd),16)) {
-        // Temporarily map Q/E into the engine's keyboard/controller vertical
-        // buttons. Native acceleration and all three scaled axes stay together.
-        camera_lift_scope input(cmd,lift);
-        native_calls::invoke(movement_original,cmd);
+    if(readable(reinterpret_cast<uintptr_t>(cmd),0x1c)) {
+        camera_level_scope level(cmd);
+        if(lift && !capture) {
+            // Temporarily map Q/E into the engine's keyboard/controller vertical
+            // buttons. Native acceleration and all three scaled axes stay together.
+            camera_lift_scope input(cmd,lift);
+            native_calls::invoke(movement_original,cmd);
+        } else native_calls::invoke(movement_original,cmd);
     } else native_calls::invoke(movement_original,cmd);
     if(field<int>(p,0x7dae60)!=2 || field<int>(p,0x7dae64)!=mode) {movement.reset();set_diagnostic_stage("idle");return;}
     capture=menu_open.load() || exit_dialog.load() || native_menu_active();
@@ -541,6 +581,20 @@ bool initialize_backend() {
     MH_EnableHook(reinterpret_cast<void*>(base+profile::main_frame));
     {std::lock_guard lock(mutex);state.available=true;visible_state.publish(state);}
     playback_helper::initialize(base,[](const char* text){log_message(text);});
+    {
+        // boiii.exe's mouse hook for the bot menu: "if the menu is open, drop the mouse movement".
+        // Its open flag is the byte that code tests; only trust it in the exact client build.
+        static const char stub[]="\x56\x57\x55\x53\x48\x83\xec\x28\xf0\x48\xff\x05\x01\x49\x5d\x00\xf6\x05\x02\x49\x5d\x00\x01\x74\x0b\x31\xc0\x48\x83\xc4\x28\x5b\x5d\x5f\x5e\xc3";
+        constexpr uintptr_t stub_rva=0x1b40f,flag_rva=0x5efd28;
+        auto host=reinterpret_cast<uintptr_t>(GetModuleHandleW(L"boiii.exe"));
+        const auto setter=profile::lui_key_catcher;
+        if(host && readable(host+stub_rva,sizeof(stub)-1) && !std::memcmp(reinterpret_cast<void*>(host+stub_rva),stub,sizeof(stub)-1) &&
+            readable(host+flag_rva,1) && readable(base+setter.rva,setter.length) &&
+            !std::memcmp(reinterpret_cast<void*>(base+setter.rva),setter.bytes,setter.length)) {
+            bot_menu_flag=reinterpret_cast<const unsigned char*>(host+flag_rva);
+            log_message("Bot menu input block ready");
+        } else log_message("Bot menu input block unavailable: client build not recognised");
+    }
     log_message("Exact game build verified; theater backend enabled");return true;
 }
 void shutdown_backend() {

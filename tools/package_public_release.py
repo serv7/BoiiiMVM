@@ -12,7 +12,7 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.9.0-test11"
+VERSION = "0.9.0-test12"
 NAME = f"BoiiiMVM-v{VERSION}.zip"
 DATA_DIRS = ("gamesettings", "launcher", "lookup_tables", "scripts", "ui_scripts")
 

@@ -76,49 +76,101 @@ int main() {
     assert(timeline_tick(2,1000,2000)==2000);
     assert(timeline_tick(.5f,1000,1000)==1000);
     {
-        // Seek: the engine jump lands short, the rest is played fast and slowed onto the target.
-        seek_controller seek;seek.start(50000,10000,false,1.f);
-        double now=12000;int steps=0;seek_step last;
-        for(;steps<2000 && seek.active;++steps) {
-            last=seek.frame(int(now),90000,false,16.);
-            if(last.type==seek_step::set_speed){assert(last.speed>=seek_controller::settle_speed && last.speed<=seek_controller::max_speed);now+=last.speed*16.;}
-            assert(last.type!=seek_step::jump && !last.toggle_pause);
+        // A stand-in for the game as measured in theater.log: snapshots every 30 s (…, 213800,
+        // 243800, …), a jump or a pause toggle applies a few frames later, and pausing steps the
+        // time back 3 ms.
+        struct film {
+            double now=0,frame_ms=16;bool paused=false;float speed=1;int end=600000;
+            int jump_due=-1,jump_to=0,pause_due=-1,toggles=0,jumps_back=0,jumps_forward=0;
+            float fastest=0;bool careful_ok=true;
+            static int snapshot_before(int tick){return tick<13800?0:(tick-13800)/30000*30000+13800;}
+            seek_step run(seek_controller& seek,seek_step step,int target,bool careful=false,bool pause_works=true,bool stuck=false,int max_frames=200000) {
+                for(int frame=0;;++frame) {
+                    assert(frame<max_frames);
+                    if(step.type==seek_step::jump_back){++jumps_back;jump_to=snapshot_before(step.tick);jump_due=5;}
+                    if(step.type==seek_step::jump_forward){++jumps_forward;jump_to=snapshot_before(step.tick)+30000;jump_due=5;}
+                    if(step.type!=seek_step::none)speed=step.speed;
+                    if(step.toggle_pause){++toggles;if(pause_works)pause_due=2;}
+                    if(step.type==seek_step::finish)return step;
+                    assert(step.type==seek_step::none || (step.speed>=seek_controller::crawl && step.speed<=seek_controller::max_speed));
+                    if(step.type==seek_step::set_speed && !paused && jump_due<0) {
+                        fastest=std::max(fastest,step.speed);
+                        if(careful && target-now<=seek_controller::careful_ms && step.speed>seek_controller::careful_speed)careful_ok=false;
+                    }
+                    // one game frame
+                    if(jump_due>=0 && jump_due--==0)now=jump_to;
+                    if(pause_due>=0 && pause_due--==0){paused=!paused;if(paused)now-=3;}
+                    if(!paused && !stuck)now+=speed*frame_ms;
+                    step=seek.frame(int(now),end,paused,frame_ms);
+                }
+            }
+        };
+        const float crawl=seek_controller::crawl;
+        for(double frame_ms:{4.,16.,33.}) {
+            // Back from a playing film: one jump to the snapshot before the target, play up to it,
+            // arrive on the tick, speed handed back, no pause sent.
+            film game;game.now=229320;game.frame_ms=frame_ms;seek_controller seek;
+            auto first=seek.start(224320,229320,13800,false,1.f,1500,false);
+            assert(first.type==seek_step::jump_back && first.tick==222820 && first.speed==crawl);
+            auto last=game.run(seek,first,224320);
+            assert(!seek.active && last.reached && last.speed==1.f && game.toggles==0 && game.jumps_back==1 && game.jumps_forward==0);
+            assert(game.now>=224320 && game.now<224322 && game.fastest==seek_controller::max_speed);        }
+        for(double frame_ms:{4.,16.,33.}) {
+            // The same from a paused film: exactly one unpause and one pause, and it ends paused on
+            // or just before the tick (never after), with the speed restored only once it is paused.
+            film game;game.now=229320;game.paused=true;game.frame_ms=frame_ms;seek_controller seek;
+            auto last=game.run(seek,seek.start(224320,229320,13800,true,.5f,1500,false),224320);
+            assert(last.reached && last.speed==.5f && game.toggles==2 && game.paused);
+            assert(game.now<=224321 && game.now>=224316);
         }
-        assert(!seek.active && last.type==seek_step::finish && last.speed==1.f && !last.toggle_pause);
-        // It slows down near the target rather than flying past it.
-        assert(now>=50000 && now-50000<=16);
-    }
-    {
-        // Seek back from a paused film: the jump lands past the target, so it jumps back again; then
-        // exactly one unpause, play onto the target, and exactly one pause to leave it paused.
-        seek_controller seek;seek.start(20000,30000,true,.5f);
-        double now=25000;bool jumped=false,paused=true;int toggles=0;seek_step last;
-        for(int i=0;i<5000 && seek.active;++i) {
-            last=seek.frame(int(now),90000,paused,16.);
-            if(last.toggle_pause){++toggles;paused=!paused;}
-            if(last.type==seek_step::jump){assert(last.tick==20000);jumped=true;now=19000;}
-            else if(last.type==seek_step::set_speed && !paused)now+=last.speed*16.;
+        {
+            // Far ahead: the forward jump lands on the snapshot after the target, so it goes back to
+            // the one before and plays from there.
+            film game;game.now=24052;seek_controller seek;
+            auto first=seek.start(221847,24052,13800,false,1.f,1500,false);
+            assert(first.type==seek_step::jump_forward && first.tick==220347);
+            auto last=game.run(seek,first,221847);
+            assert(last.reached && game.jumps_forward==1 && game.jumps_back==1 && game.now>=221847 && game.now<221849);
         }
-        assert(jumped && last.type==seek_step::finish && toggles==2 && paused && last.speed==.5f && now>=20000);
-    }
-    {
-        // If demo_pause doesn't take, it is not sent again: one toggle, then it stays where it landed.
-        seek_controller seek;seek.start(30000,10000,true,1.f);
-        int toggles=0,frames=0;seek_step last;
-        while(seek.active && frames<1000){last=seek.frame(15000,90000,true,16.);toggles+=last.toggle_pause;++frames;}
-        assert(!seek.active && toggles==1 && !last.toggle_pause && frames<=seek_controller::settle_frames+seek_controller::unpause_frames+3);
-    }
-    {
-        // An exact engine jump finishes after settling; a stuck film gives up instead of looping.
-        seek_controller exact;exact.start(40000,10000,false,2.f);seek_step last;
-        for(int i=0;i<10 && exact.active;++i)last=exact.frame(40000,90000,false,16.);
-        assert(!exact.active && last.type==seek_step::finish && last.speed==2.f && !last.toggle_pause);
-        seek_controller stuck;stuck.start(40000,10000,false,1.f);
-        int frames=0;while(stuck.active && frames<1000){stuck.frame(10000,90000,false,16.);++frames;}
-        assert(!stuck.active && frames<200);
-        seek_controller end;end.start(95000,10000,false,1.f);
-        for(int i=0;i<10 && end.active;++i)last=end.frame(89999,90000,false,16.);
-        assert(!end.active && last.type==seek_step::finish);
+        {
+            // A little way ahead: no snapshot load at all, just played.
+            film game;game.now=100000;seek_controller seek;
+            auto first=seek.start(105000,100000,13800,false,2.f,1500,false);
+            assert(first.type==seek_step::set_speed);
+            auto last=game.run(seek,first,105000);
+            assert(last.reached && last.speed==2.f && game.jumps_back+game.jumps_forward==0 && game.now>=105000 && game.now<105002);
+            // ...unless the lead-up that must be played starts before the current time.
+            seek_controller lead;
+            assert(lead.start(102000,100000,13800,true,1.f,5000,true).type==seek_step::jump_back);
+        }
+        {
+            // First camera: at least 5 s of lead-up, the last stretch near normal speed, ends paused.
+            film game;game.now=229118;seek_controller seek;
+            auto first=seek.start(229000,229118,13800,true,1.f,5000,true);
+            assert(first.type==seek_step::jump_back && first.tick==224000);
+            auto last=game.run(seek,first,229000,true);
+            assert(last.reached && game.careful_ok && game.paused && game.toggles==1 && game.now<=229001 && game.now>=228996);
+        }
+        {
+            // The target is close to the film's start: the jump is clamped to the first tick.
+            seek_controller seek;
+            assert(seek.start(14000,60000,13800,false,1.f,1500,false).tick==13800);
+        }
+        {
+            // demo_pause that never takes is tried a few times, seconds apart, then it stops.
+            film game;game.now=229320;game.paused=true;seek_controller seek;
+            auto last=game.run(seek,seek.start(224320,229320,13800,true,1.f,1500,false),224320,false,false);
+            assert(!last.reached && !seek.active && game.toggles==seek_controller::max_pause_tries);
+        }
+        {
+            // A film that stops advancing gives up instead of looping; so does one that ends first.
+            film game;game.now=229320;seek_controller seek;
+            auto last=game.run(seek,seek.start(224320,229320,13800,false,1.f,1500,false),224320,false,true,true);
+            assert(!last.reached && !seek.active);
+            film short_film;short_film.now=100000;short_film.end=103000;seek_controller end;
+            last=short_film.run(end,end.start(105000,100000,13800,false,1.f,1500,false),105000);
+            assert(!end.active && last.type==seek_step::finish && short_film.now<103100);
+        }
     }
     assert(step_speed(.01f,-1)==.01f);
     assert(step_speed(10.f,1)==10.f);

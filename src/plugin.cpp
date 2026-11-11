@@ -115,7 +115,9 @@ bool dispatch_binding(theater::binds::id selected,WPARAM key) {
     case binds::id::roll_right:if(state.view==2)enqueue_roll(1);return true;
     case binds::id::zoom_in:if(state.view==2)enqueue_zoom(1);return true;
     case binds::id::zoom_out:if(state.view==2)enqueue_zoom(-1);return true;
-    default:return key=='Q' || key=='E'; // Native Q can restart the demo.
+    // Keys the game itself acts on in a film: Q can restart the demo, X switches between first
+    // and third person. They only do what they are bound to here.
+    default:return key=='Q' || key=='E' || key=='X';
     }
 }
 bool capture_key(WPARAM key) {
@@ -269,7 +271,10 @@ HRESULT __stdcall present(IDXGISwapChain* swap,UINT sync,UINT flags) {
             }
         }
     }
-    return original_present(swap,sync,flags);
+    theater::reshade_capture::enter_present();
+    HRESULT result=original_present(swap,sync,flags);
+    theater::reshade_capture::leave_present();
+    return result;
 }
 HRESULT __stdcall resize(IDXGISwapChain* swap,UINT count,UINT width,UINT height,DXGI_FORMAT format,UINT flags) {
     if(swap==active_swap)theater::capture::stop();
@@ -281,7 +286,7 @@ namespace theater {
 void render_after_reshade(ID3D11RenderTargetView* output){render_overlay(output);}
 void open_game_menu(){if(window && native_menu_message)PostMessageW(window,native_menu_message,0,0);}
 }
-extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test11";}
+extern "C" __declspec(dllexport) const char* p_name() {return "BO3 Theater Keyboard UI 0.9.0-test12";}
 extern "C" __declspec(dllexport) void post_unpack() {
     if(init_thread.joinable())return;
     init_thread=std::thread([] {

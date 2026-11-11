@@ -2,7 +2,7 @@
 
 [![Watch the 40-second installation video](docs/video/install-cover.jpg)](https://serv7.github.io/BoiiiMVM/)
 
-**[Watch the 40-second installation video](https://serv7.github.io/BoiiiMVM/). Launch `boiii.exe`, not `BlackOps3.exe`. If the “BOIII Patch Installer” prompt appears, press Cancel.**
+**[Watch the 40-second installation video](https://serv7.github.io/BoiiiMVM/). Launch `boiii.exe`, not `BlackOps3.exe`.** The supplied `boiii.exe` no longer shows the “BOIII Patch Installer” prompt; with an older build, press Cancel if it appears.
 
 Keyboard-first cinematic tools and a bot setup for **Call of Duty: Black Ops III** on Windows. The package combines the BOIII bot mod with a theater overlay for building camera paths, changing the scene, and recording video directly from the game.
 
@@ -17,7 +17,7 @@ Download **`BoiiiMVM-v0.8.1.zip`** from [Releases](https://github.com/serv7/Boii
 1. Close BOIII and back up your current `boiii.exe`, `boiii` folder, and `%LOCALAPPDATA%\boiii\data` if they exist.
 2. Open the ZIP. Copy `boiii.exe`, `boiii`, and `MVM` into the folder containing your own `BlackOps3.exe`. Merge folders and replace the supplied client/plugin files.
 3. Copy the ZIP's `boiii\data` folder to `%LOCALAPPDATA%\boiii\data`, merging it with any existing runtime data. The copy left under the game folder is harmless; the client reads the AppData copy.
-4. **Launch the bundled `boiii.exe`, not `BlackOps3.exe`**, from your BO3 folder with `-noupdate` so this compatible build stays in place. If BOIII offers to download a different `BlackOps3.exe`, **press Cancel**. Start a private custom game to use the bot mod. To use the cinematic tools, open a saved multiplayer theater film through BOIII.
+4. **Launch the bundled `boiii.exe`, not `BlackOps3.exe`**, from your BO3 folder with `-noupdate` so this compatible build stays in place. The supplied client keeps your `BlackOps3.exe` and no longer offers to download a different one; if an older client asks, **press Cancel**. Start a private custom game to use the bot mod. To use the cinematic tools, open a saved multiplayer theater film through BOIII.
 
 The runtime ZIP has only four items at its top level: `boiii/`, `MVM/`, `boiii.exe`, and `README.md`. Read [the detailed installation guide](docs/INSTALL.md) before replacing an existing BOIII setup.
 

@@ -23,6 +23,9 @@ inline constexpr fingerprint camera_movement = {0x25cfe40, "\x48\x89\x7c\x24\x20
 inline constexpr fingerprint camera_vertical_up = {0x25d34d2,"\x8b\x4f\x04\x8b\xc1\xc1\xe8\x11\xa8\x01",10};
 inline constexpr fingerprint camera_vertical_down = {0x25d34e6,"\xc1\xe9\x10\xf6\xc1\x01",6};
 inline constexpr fingerprint camera_vertical_controller = {0x25d348a,"\x66\x83\x7f\x4c\x00",5};
+// void(localClient, bool active): the game's own switch for sending keys and mouse buttons to its
+// menu layer instead of the player (sets the per-client flag, releases held keys, key catcher 0x10).
+inline constexpr fingerprint lui_key_catcher = {0x1f2bdc0, "\x48\x89\x5c\x24\x08\x48\x89\x74\x24\x10\x57\x48\x83\xec\x20\x48", 16};
 inline constexpr uintptr_t theater_pointer = 0x197eba00;
 // Verified from CL_Keys_AddCatcher / Lua SetLuiKeyCatcher in the supported build.
 inline constexpr uintptr_t key_catchers = 0x53d8bc4;
