@@ -38,3 +38,4 @@
 - Tests: `./tools/test.ps1`
 - GSC compiler: `gsc-tool.exe -m comp -g t7 -s pc64 -i client file.csc`
 - Game install: `E:\SteamLibrary\steamapps\common\Call of Duty Black Ops III`
+- **botmod.gsc is built into boiii.exe**: the client rewrites `custom_scripts/mp/botmod.gsc` from its embedded copy on launch. Update it with `tools/embed_botmod.py <boiii.exe>` (fixed 14,687-byte slot; comments are stripped).

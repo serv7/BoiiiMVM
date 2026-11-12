@@ -250,6 +250,9 @@ void draw(const host_vector* list) {
     if(button("Apply to me",wide))run_command("botmod_applyme");
     if(hovered())tooltip("You wear this specialist and skin, including after respawning");
     text_wrapped("Applies to bots spawned from now on (or use \"Give existing bots the current loadout\").");
+    spacing();
+    if(button("Unfreeze bots",wide))run_command("botmod_unfreeze");
+    if(hovered())tooltip("Lets every living bot move and fight. Killed bots respawn on their spot, frozen again.");
     if(!announced){announced=true;if(log)log("Bot menu: Specialist page drawn with outfit names and pictures");}
 }
 // Reached from the stub in place of the client's own page code; nothing may escape into it.

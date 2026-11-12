@@ -21,3 +21,9 @@ The Specialist page lists every outfit by its in-game name and shows a picture o
 Tick **Separate Head & Body Selection** to mix parts: **Body** and **Head** above the list choose which part it changes, and the picture shows the chosen head above the chosen body with both names. Turning the option off again keeps a mixed pair until you pick a complete outfit. Blackjack has no named outfits, so his two entries are numbered.
 
 The names were read from the game's own outfit table, where body N and helmet N of a specialist carry the same name, and the pictures were rendered on the game's Personalization screen with exactly those two parts (344 outfits). They live in `MVM/Theater/outfit-previews` (`catalog.txt`, `h<specialist>_<outfit>.jpg`, `..._head.jpg`). A missing picture or name falls back to "No picture" or a numbered entry. The page needs the supplied `boiii.exe`; with any other client build the original page with numbered Body and Head boxes is shown. `tools/outfits` holds the scripts that produced the set.
+
+## Unfreeze bots (0.9.0-test14)
+
+**Unfreeze bots** (bottom of the Specialist page, or the console command `botmod_unfreeze`) lets every living bot move and fight. It lasts one life: a killed bot respawns on its spawn spot, frozen again, and newly spawned bots are always frozen. Bots now run at the hardest difficulty (`bot_difficulty 3`, veteran).
+
+boiii.exe carries its own copy of `botmod.gsc` and rewrites `boiii/custom_scripts/mp/botmod.gsc` from it on every launch, so editing the installed file does nothing. After changing `botmod/botmod.gsc`, run `tools/embed_botmod.py <game>\boiii.exe` (comments are stripped so it fits the fixed-size resource).

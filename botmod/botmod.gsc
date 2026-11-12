@@ -18,6 +18,10 @@ function autoexec botmod_init()
 	setdvar("bot_maxaxis", 0);
 	setdvar("bot_maxfree", 0);
 
+	// Hardest bots (get_bot_settings in _bot.gsc: 3 = bot_mp_veteran), so
+	// they move and fight hard once unfrozen
+	setdvar("bot_difficulty", 3);
+
 	// Weapons don't drop on death, so there is never a gun on the floor for a
 	// bot to pick up into the wrong slot
 	level.disableweapondrop = 1;
@@ -32,6 +36,7 @@ function autoexec botmod_init()
 	addcommand("botmod_applyme", ::cmd_apply_me);
 	addcommand("botmod_giveme", ::cmd_give_me);
 	addcommand("botmod_camome", ::cmd_camo_me);
+	addcommand("botmod_unfreeze", ::cmd_unfreeze);
 
 	level thread watch_players();
 	level thread write_character_catalog();
@@ -182,6 +187,21 @@ function cmd_remove(args)
 	level.botmod_bots = [];
 }
 
+// One-shot: every living bot is let go for the rest of its life. After dying
+// it respawns on its spot frozen again (bot_life), like a new bot.
+function cmd_unfreeze(args)
+{
+	trace("cmd_unfreeze");
+	foreach (bot in get_bots())
+	{
+		if (!isalive(bot))
+			continue;
+
+		bot notify("botmod_unfreeze");
+		bot freezecontrols(0);
+	}
+}
+
 // Gives every existing bot the menu's current weapon, camo and specialist
 function cmd_refresh(args)
 {
@@ -325,6 +345,7 @@ function hold_pose()
 	self endon("disconnect");
 	self endon("death");
 	self endon("spawned_player");
+	self endon("botmod_unfreeze");
 
 	moved_logged = false;
 	for (;;)
