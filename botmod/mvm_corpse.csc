@@ -141,7 +141,7 @@ function fresh_body_near(spot, now)
     best = 150 * 150;
     foreach (body in GetEntArrayByType(0, 2))
     {
-        if (!IsDefined(body.mvm_fresh) || now - body.mvm_fresh > 500 || now < body.mvm_fresh)
+        if (!IsDefined(body.mvm_fresh) || now - body.mvm_fresh > 500 || body.mvm_fresh - now > 500)
             continue;
         if (body_is_held(body))
             continue;
@@ -202,7 +202,8 @@ function check_time_jump()
     jumped = level.mvm_jump_pending;
     if (IsDefined(level.mvm_last_time))
     {
-        if (now < level.mvm_last_time)
+        // Film time can step back a few ms between callbacks; only a real rewind counts.
+        if (level.mvm_last_time - now > 1000)
             jumped = true;
         if (now - level.mvm_last_time > 3000)
             jumped = true;
@@ -235,7 +236,7 @@ function claim_body(body)
     best = 150 * 150;
     foreach (death in level.mvm_deaths)
     {
-        if (death.used || now - death.time > 500 || now < death.time)
+        if (death.used || now - death.time > 500 || death.time - now > 500)
             continue;
         gap = DistanceSquared(death.spot, body.origin);
         if (gap < best)
@@ -357,7 +358,11 @@ function start_hold(body, gun, id, now)
     hold.sample_time = now;
     hold.last_time = now;
     hold.model = Spawn(0, spot, "script_model");
-    hold.model SetModel(gun.worldModel);
+    // UseWeaponModel builds the gun with its attachments, and lets a camo be put on it.
+    hold.model UseWeaponModel(gun);
+    camo = GetDvarInt("mvm_holdgun_camo", 0);
+    if (camo > 0)
+        hold.model SetWeaponRenderOptions(camo, 0, false, false, 0, 0, 0, true, false);
     // The weapon model has collision; where it met the ragdoll the body was thrown across
     // the map. NotSolid is in the client method table.
     hold.model NotSolid();
@@ -628,14 +633,14 @@ function playback_manager()
             waiting = [];
             foreach (death in level.mvm_deaths)
             {
-                if (!death.used && now >= death.time && now - death.time <= 1000)
+                if (!death.used && death.time - now <= 1000 && now - death.time <= 1000)
                     waiting[waiting.size] = death;
             }
             level.mvm_deaths = waiting;
             recent = [];
             foreach (entry in level.mvm_items)
             {
-                if (!entry.used && now >= entry.time && now - entry.time <= 1000)
+                if (!entry.used && entry.time - now <= 1000 && now - entry.time <= 1000)
                     recent[recent.size] = entry;
             }
             level.mvm_items = recent;

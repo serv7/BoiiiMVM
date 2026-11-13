@@ -12,7 +12,9 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.9.0-test14"
+VERSION = "0.9.0-test15"
+# The theater plugin is unchanged since this build; only the client changed.
+PLUGIN_VERSION = "0.9.0-test14"
 NAME = f"BoiiiMVM-v{VERSION}.zip"
 DATA_DIRS = ("gamesettings", "launcher", "lookup_tables", "scripts", "ui_scripts")
 
@@ -49,8 +51,8 @@ def main() -> None:
     data = args.boiii_data.resolve()
     built = (ROOT / "build/bo3_theater.dll").read_bytes()
     installed = (game / "boiii/plugins/bo3_theater.dll").read_bytes()
-    if built != installed or f"BO3 Theater Keyboard UI {VERSION}".encode() not in built:
-        raise ValueError(f"Installed theater plugin does not match the {VERSION} build")
+    if built != installed or f"BO3 Theater Keyboard UI {PLUGIN_VERSION}".encode() not in built:
+        raise ValueError(f"Installed theater plugin does not match the {PLUGIN_VERSION} build")
     if not (game / "BlackOps3.exe").is_file():
         raise FileNotFoundError("The game folder must contain the user's BlackOps3.exe")
 

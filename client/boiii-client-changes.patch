@@ -1,0 +1,2076 @@
+diff --git a/src/client/component/botmod/botmod.cpp b/src/client/component/botmod/botmod.cpp
+index 7823c74c..6d40dfed 100644
+--- a/src/client/component/botmod/botmod.cpp
++++ b/src/client/component/botmod/botmod.cpp
+@@ -1,6 +1,7 @@
+ #include <std_include.hpp>
+ 
+ #include "botmod_data.hpp"
++#include "botmod_outfits.hpp"
+ 
+ #include <component/binds.hpp>
+ #include <component/command.hpp>
+@@ -18,6 +19,8 @@
+ #include <utils/string.hpp>
+ 
+ #include <imgui.h>
++#include <stb_image.h>
++#include <wrl/client.h>
+ 
+ #include <rapidjson/document.h>
+ #include <rapidjson/prettywriter.h>
+@@ -1235,24 +1238,287 @@ void draw_loadout_tab() {
+   ImGui::TextDisabled("Bots spawned from now on get this gun and camo.");
+ }
+ 
++// ---- outfit names and pictures ---------------------------------------------
++// The names of each specialist's outfits and a picture of each come from
++// MVM/Theater/outfit-previews (catalog.txt + h<specialist>_<index>.jpg), made
++// from the game's own Personalization screen.
++using Microsoft::WRL::ComPtr;
++const char *const outfit_folder = "MVM/Theater/outfit-previews";
++const char *const outfit_settings_file = "MVM/outfit_menu.cfg";
++
++struct outfit_picture {
++  ComPtr<ID3D11ShaderResourceView> view;
++  uint64_t used{};
++  bool failed{};
++};
++
++std::map<std::string, outfit_picture> outfit_pictures;
++uint64_t outfit_frame{};
++outfits::catalog outfit_names;
++bool outfits_loaded{};
++bool separate_parts{};
++bool editing_head{};
++
++void load_outfit_data() {
++  if (outfits_loaded) {
++    return;
++  }
++  outfits_loaded = true;
++
++  std::ifstream catalog(std::filesystem::path(outfit_folder) / "catalog.txt");
++  outfit_names = outfits::catalog::parse(catalog);
++
++  std::ifstream settings(outfit_settings_file);
++  std::string line;
++  while (std::getline(settings, line)) {
++    if (line.rfind("separate=", 0) == 0) {
++      separate_parts = line.size() > 9 && line[9] == '1';
++    }
++  }
++  diag("outfits: %zu specialists in the catalog",
++       outfit_names.specialists.size());
++}
++
++void save_outfit_settings() {
++  std::ofstream out(outfit_settings_file, std::ios::trunc);
++  out << "separate=" << (separate_parts ? 1 : 0) << "\n";
++}
++
++ComPtr<ID3D11ShaderResourceView> load_outfit_picture(const std::string &name) {
++  auto *device = download_overlay::get_device();
++  if (!device) {
++    return nullptr;
++  }
++
++  const auto path = (std::filesystem::path(outfit_folder) / name).string();
++  int width{}, height{}, channels{};
++  auto *pixels = stbi_load(path.data(), &width, &height, &channels, 4);
++  if (!pixels) {
++    return nullptr;
++  }
++
++  ComPtr<ID3D11ShaderResourceView> view;
++  if (width > 0 && height > 0 && width <= 1024 && height <= 1024) {
++    D3D11_TEXTURE2D_DESC desc{};
++    desc.Width = static_cast<UINT>(width);
++    desc.Height = static_cast<UINT>(height);
++    desc.MipLevels = desc.ArraySize = 1;
++    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
++    desc.SampleDesc.Count = 1;
++    desc.Usage = D3D11_USAGE_IMMUTABLE;
++    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
++
++    D3D11_SUBRESOURCE_DATA initial{};
++    initial.pSysMem = pixels;
++    initial.SysMemPitch = static_cast<UINT>(width) * 4;
++
++    ComPtr<ID3D11Texture2D> texture;
++    if (SUCCEEDED(device->CreateTexture2D(&desc, &initial, &texture))) {
++      device->CreateShaderResourceView(texture.Get(), nullptr, &view);
++    }
++  }
++
++  stbi_image_free(pixels);
++  return view;
++}
++
++// Pictures are decoded the first time they are shown and kept, so moving over
++// the list again is instant. Draw commands hold raw pointers until the frame
++// is rendered, so only pictures unused for a few frames are ever dropped.
++ID3D11ShaderResourceView *outfit_picture_for(const std::string &name) {
++  if (outfit_pictures.size() > 160) {
++    for (auto item = outfit_pictures.begin();
++         item != outfit_pictures.end() && outfit_pictures.size() > 120;) {
++      item = item->second.used + 3 < outfit_frame ? outfit_pictures.erase(item)
++                                                  : std::next(item);
++    }
++  }
++
++  auto &item = outfit_pictures[name];
++  item.used = outfit_frame;
++  if (!item.view && !item.failed) {
++    item.view = load_outfit_picture(name);
++    item.failed = !item.view;
++  }
++  return item.view.Get();
++}
++
++void draw_outfit_picture(ID3D11ShaderResourceView *view,
++                         const outfits::rect box, const float v0 = 0.0f) {
++  if (!view) {
++    return;
++  }
++
++  const ImVec2 origin = ImGui::GetCursorScreenPos();
++  ImGui::GetWindowDrawList()->AddImage(
++      ImTextureRef(static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(view))),
++      ImVec2(origin.x + box.x0, origin.y + box.y0),
++      ImVec2(origin.x + box.x1, origin.y + box.y1), ImVec2(0, v0),
++      ImVec2(1, 1));
++}
++
++// A list of names; returns the entry under the mouse, -1 when none
++int outfit_name_list(const char *id, const ImVec2 size,
++                     const outfits::specialist *who, const char *kind,
++                     const int total, const int chosen, int &picked) {
++  int under = -1;
++  if (ImGui::BeginChild(id, size, ImGuiChildFlags_Borders)) {
++    for (int i = 0; i < total; ++i) {
++      const auto label =
++          outfits::label(who, i, kind) + "##" + id + std::to_string(i);
++      if (ImGui::Selectable(label.data(), i == chosen)) {
++        picked = i;
++      }
++      if (ImGui::IsItemHovered()) {
++        under = i;
++      }
++    }
++  }
++  ImGui::EndChild();
++  return under;
++}
++
++void draw_outfits(const specialist_info &entry, const float width,
++                  const float height, const float line) {
++  const auto *who = outfit_names.find(entry.body_type);
++  const int body = get_int("botmod_body");
++  const int head = get_int("botmod_head");
++  const float gap = 8.0f;
++  const float list_width = std::max(140.0f, line * 5.9f);
++  int show_body = body, show_head = head, total = 0;
++
++  if (!separate_parts) {
++    // One entry is the matching body and head. A mixed pair set earlier in
++    // separate mode is left alone until an outfit is picked; it just has no
++    // highlighted entry.
++    total = outfits::outfit_count(who, entry.bodies, entry.heads);
++    int picked = -1;
++    const int under =
++        outfit_name_list("outfits", ImVec2(list_width, height), who, "Outfit",
++                         total, body == head ? body : -1, picked);
++    if (under >= 0) {
++      show_body = show_head = under;
++    }
++    if (picked >= 0) {
++      set_int("botmod_body", picked);
++      set_int("botmod_head", picked);
++    }
++  } else {
++    // One tall list at a time: "Body" and "Head" above it choose which part
++    // it changes
++    const int bodies = outfits::count(who, entry.bodies);
++    const int heads = outfits::count(who, entry.heads);
++    total = bodies + heads;
++    const float half = (list_width - gap) / 2;
++
++    ImGui::BeginGroup();
++    if (ImGui::Selectable("Body##part", !editing_head, 0, ImVec2(half, 0))) {
++      editing_head = false;
++    }
++    ImGui::SameLine();
++    if (ImGui::Selectable("Head##part", editing_head, 0, ImVec2(half, 0))) {
++      editing_head = true;
++    }
++
++    int picked = -1;
++    const ImVec2 size(list_width, std::max(line * 4, height - line - 4));
++    if (!editing_head) {
++      const int under =
++          outfit_name_list("bodies", size, who, "Body", bodies, body, picked);
++      if (under >= 0) {
++        show_body = under;
++      }
++      if (picked >= 0) {
++        set_int("botmod_body", picked);
++      }
++    } else {
++      const int under =
++          outfit_name_list("heads", size, who, "Head", heads, head, picked);
++      if (under >= 0) {
++        show_head = under;
++      }
++      if (picked >= 0) {
++        set_int("botmod_head", picked);
++      }
++    }
++    ImGui::EndGroup();
++  }
++
++  ImGui::SameLine();
++  ImGui::BeginGroup();
++  float picture_width = std::max(110.0f, width - list_width - 2 * gap);
++  float picture_height = picture_width * 399.0f / 360.0f;
++  const float room = height - (show_body == show_head ? 1 : 2) * line;
++  if (picture_height > room && room > 60) {
++    picture_height = room;
++    picture_width = picture_height * 360.0f / 399.0f;
++  }
++
++  if (ImGui::BeginChild("preview", ImVec2(picture_width, picture_height), 0,
++                        ImGuiWindowFlags_NoScrollbar |
++                            ImGuiWindowFlags_NoScrollWithMouse)) {
++    bool drawn = false;
++    if (show_body == show_head) {
++      auto *view = outfit_picture_for(
++          outfits::image_name(entry.body_type, show_body, false));
++      draw_outfit_picture(view, {0, 0, picture_width, picture_height});
++      drawn = view != nullptr;
++    } else {
++      const auto parts = outfits::mix(picture_width, picture_height);
++      auto *top = outfit_picture_for(
++          outfits::image_name(entry.body_type, show_head, true));
++      auto *bottom = outfit_picture_for(
++          outfits::image_name(entry.body_type, show_body, false));
++      draw_outfit_picture(top, parts.head);
++      draw_outfit_picture(bottom, parts.body, parts.body_v0);
++      drawn = top || bottom;
++    }
++    if (!drawn) {
++      ImGui::TextDisabled("%s", total ? "No picture for this one"
++                                      : "Load into a match to list the skins");
++    }
++  }
++  ImGui::EndChild();
++
++  if (show_body == show_head) {
++    ImGui::Text("%s", outfits::label(who, show_body, "Outfit").data());
++  } else {
++    ImGui::Text("Body: %s", outfits::label(who, show_body, "Body").data());
++    ImGui::Text("Head: %s", outfits::label(who, show_head, "Head").data());
++  }
++  ImGui::EndGroup();
++}
++
+ void draw_specialist_tab() {
++  load_outfit_data();
++  ++outfit_frame;
++
+   const auto list = get_specialists();
+   const int current = get_int("botmod_specialist");
+ 
+   heading("Specialist");
+-  const float list_height = ImGui::GetTextLineHeightWithSpacing() * 11;
++  const float line = ImGui::GetTextLineHeightWithSpacing();
++  const ImVec2 room = ImGui::GetContentRegionAvail();
++  const float names_width = std::max(100.0f, line * 4.4f);
++  const float height = std::max(line * 11, room.y - line * 4.8f);
++
+   const specialist_info *selected = nullptr;
+-  if (ImGui::BeginChild("specialists", ImVec2(170, list_height),
++  for (const auto &info : list) {
++    if (info.body_type == current) {
++      selected = &info;
++    }
++  }
++
++  if (ImGui::BeginChild("specialists", ImVec2(names_width, height),
+                         ImGuiChildFlags_Borders)) {
+     if (ImGui::Selectable("Random", current < 0)) {
+       set_int("botmod_specialist", -1);
+     }
+     for (const auto &info : list) {
+-      if (info.body_type == current) {
+-        selected = &info;
+-      }
+-      const std::string label =
+-          std::format("{}##{}", info.name, info.body_type);
++      const auto *known = outfit_names.find(info.body_type);
++      const std::string label = std::format(
++          "{}##{}", known && !known->name.empty() ? known->name : info.name,
++          info.body_type);
+       if (ImGui::Selectable(label.data(), info.body_type == current)) {
+         set_int("botmod_specialist", info.body_type);
+         set_int("botmod_body", 0);
+@@ -1264,48 +1530,26 @@ void draw_specialist_tab() {
+ 
+   ImGui::SameLine();
+   ImGui::BeginGroup();
+-  if (!selected) {
+-    ImGui::TextWrapped("Random: bots get a random specialist and skins.");
++  if (selected) {
++    draw_outfits(*selected, room.x - names_width - 8, height, line);
+   } else {
+-    const auto skin_picker = [](const char *label, const char *dvar,
+-                                const int count) {
+-      const int value = get_int(dvar);
+-      ImGui::Text("%s", label);
+-      ImGui::SetNextItemWidth(-1);
+-      if (count > 0) {
+-        const std::string preview = std::format("{} {}", label, value + 1);
+-        if (ImGui::BeginCombo(std::format("##{}", dvar).data(),
+-                              preview.data())) {
+-          for (int i = 0; i < count; ++i) {
+-            const std::string item = std::format("{} {}", label, i + 1);
+-            if (ImGui::Selectable(item.data(), i == value)) {
+-              set_int(dvar, i);
+-            }
+-          }
+-          ImGui::EndCombo();
+-        }
+-      } else {
+-        // Counts come from the game once a match has been loaded
+-        int edit = value + 1;
+-        if (ImGui::InputInt(std::format("##{}", dvar).data(), &edit)) {
+-          set_int(dvar, std::clamp(edit, 1, 64) - 1);
+-        }
+-      }
+-    };
+-
+-    skin_picker("Body", "botmod_body", selected->bodies);
+-    ImGui::Spacing();
+-    skin_picker("Head", "botmod_head", selected->heads);
+-
+-    if (selected->bodies == 0) {
+-      ImGui::Spacing();
+-      ImGui::TextDisabled("Load into a match to see how many\nskins each "
+-                          "specialist has.");
+-    }
++    ImGui::TextDisabled("Random: bots get a random specialist and skins.");
+   }
+   ImGui::EndGroup();
+ 
+   ImGui::Spacing();
++  if (selected) {
++    bool value = separate_parts;
++    if (ImGui::Checkbox("Separate Head & Body Selection", &value)) {
++      separate_parts = value;
++      save_outfit_settings();
++    }
++    if (ImGui::IsItemHovered()) {
++      ImGui::SetTooltip("Off: one list of complete outfits. On: pick the body "
++                        "and the head from different outfits.");
++    }
++  }
++
+   const float width = ImGui::GetContentRegionAvail().x;
+   if (ImGui::Button("Apply to me", ImVec2(width, 0))) {
+     run_command("botmod_applyme");
+@@ -1314,8 +1558,55 @@ void draw_specialist_tab() {
+     ImGui::SetTooltip("You wear this specialist and skin, including after "
+                       "respawning");
+   }
+-  ImGui::TextDisabled("Applies to bots spawned from now on (or use \"Give "
+-                      "existing bots the current loadout\").");
++  ImGui::TextWrapped("Applies to bots spawned from now on (or use \"Give "
++                     "existing bots the current loadout\").");
++
++  ImGui::Spacing();
++  if (ImGui::Button("Unfreeze bots", ImVec2(width, 0))) {
++    run_command("botmod_unfreeze");
++  }
++  if (ImGui::IsItemHovered()) {
++    ImGui::SetTooltip("Lets every living bot move and fight. Killed bots "
++                      "respawn on their spot, frozen again.");
++  }
++}
++
++// ---- game input while the menu is open --------------------------------------
++// The mouse hook stops mouse movement reaching the game while the menu is
++// open, but clicks and keys still got through, so clicking in the menu fired
++// the gun. While it is open in a live match, hand input to the game's menu
++// layer the way the pause menu does, and give it back when the menu closes.
++constexpr uintptr_t LUI_SET_KEY_CATCHER = 0x141f2bdc0; // (localClient, on)
++constexpr uintptr_t KEY_CATCHERS = 0x1453d8bc4;        // uint
++constexpr unsigned KEY_CATCHER_UI = 0x10;
++
++void set_game_menu_input(const bool on) {
++  arxan::detail::set_address_to_call(
++      reinterpret_cast<void *>(game::relocate(LUI_SET_KEY_CATCHER)));
++  static_cast<void (*)(int, bool)>(arxan::detail::callstack_proxy_addr)(0, on);
++}
++
++void sync_game_input() {
++  static bool blocking{};
++  const bool film =
++      reinterpret_cast<bool (*)()>(game::relocate(0x142600210))();
++  const bool open = menu_open && !film;
++
++  if (open && !blocking) {
++    if (*reinterpret_cast<const unsigned *>(game::relocate(KEY_CATCHERS)) &
++        KEY_CATCHER_UI) {
++      return; // a game menu already has the input
++    }
++    set_game_menu_input(true);
++    blocking = true;
++    diag("menu open: game input blocked");
++  } else if (!open && blocking) {
++    blocking = false;
++    if (!film) {
++      set_game_menu_input(false);
++    }
++    diag("menu closed: game input restored");
++  }
+ }
+ 
+ void draw_keybinds_tab() {
+@@ -1469,6 +1760,7 @@ struct component final : client_component {
+     if (game::is_legacy_client()) {
+       cl_mouse_event_hook.create(CL_MouseEvent.get(), cl_mouse_event_stub);
+       diag("post_unpack: mouse hook installed");
++      scheduler::loop(sync_game_input, scheduler::main);
+     }
+ 
+     download_overlay::add_init_callback([] {
+diff --git a/src/client/component/demo_client_record.cpp b/src/client/component/demo_client_record.cpp
+index dd19b557..09a50b4a 100644
+--- a/src/client/component/demo_client_record.cpp
++++ b/src/client/component/demo_client_record.cpp
+@@ -5,6 +5,7 @@
+ #include "command.hpp"
+ #include "scheduler.hpp"
+ 
++#include <game/demonware/services.hpp>
+ #include <game/game.hpp>
+ #include <game/utils.hpp>
+ 
+@@ -12,6 +13,7 @@
+ #include <utils/io.hpp>
+ #include <utils/string.hpp>
+ 
++#include <deque>
+ #include <map>
+ #include <set>
+ 
+@@ -25,10 +27,6 @@
+ // connect, rebuilt byte for byte.
+ //
+ // Legacy client only. Addresses come from the bo3-demo-re research notes.
+-namespace demonware {
+-void set_client_recording(bool active);
+-}
+-
+ namespace demo_client_record {
+ namespace {
+ using game::net::msg::msg_t;
+@@ -70,6 +68,18 @@ constexpr uintptr_t SV_GACTORS = 0x15770d508;       // void*
+ constexpr uintptr_t SVS_CLIENTS = 0x1576f9318;      // void*
+ constexpr uintptr_t SVS_TIME = 0x1576f9304;         // int
+ constexpr uintptr_t SV_TIME = 0x157906590;          // int
++// Written into every film frame after the server time (snapshot +0xc).
++// Hosted films have it track the server time; a client left it stale.
++constexpr uintptr_t SV_PHYSICS_TIME = 0x157906594;  // int
++// Player origins are written relative to the server's map centre and read
++// back relative to the client's. On a remote server the server copy is stale
++// (last hosted map / frontend), which shifted the recorded player sideways.
++constexpr uintptr_t SVS_MAP_CENTER = 0x1576f9b70; // float[3]
++constexpr uintptr_t CL_MAP_CENTER = 0x1453dc2d8;  // float[3]
++// The copy the delta writer actually reads (0x142181e2d). The server refreshes
++// it from SVS_MAP_CENTER at the start of each snapshot build (0x14225b700),
++// which never runs on a client, so it has to be set directly.
++constexpr uintptr_t SV_HEADER_MAP_CENTER = 0x157906670; // float[3]
+ constexpr uintptr_t SV_MATCH_STATE = 0x1579066f0;   // void*
+ constexpr uintptr_t LEVEL_CLIENTS = 0x14a549de0;    // void*
+ constexpr uintptr_t LEVEL_ACTORS = 0x14a549e48;     // void*
+@@ -86,6 +96,7 @@ constexpr int MAX_CLIENTS = 18;
+ constexpr int MAX_GENTITIES = 1024;
+ constexpr int MAX_ACTORS = 64;
+ constexpr int MAX_RELIABLE_COMMANDS = 128;
++constexpr size_t CLIENTACTIVE_SIZE = 0x197A30;
+ 
+ // Sizes
+ constexpr size_t ENTITY_STATE_SIZE = 0x1f0;
+@@ -105,6 +116,10 @@ constexpr size_t SNAP_MATCH_STATE = 0x8c380;
+ 
+ // clientConnection_t
+ constexpr size_t CLC_SIZE = 0x25780;
++// Our own player number, as the server told us in the gamestate
++// (CL_ParseGamestate, 0x1413652c7). The snapshot's playerstate can be someone
++// else's: before the first spawn, in a killcam, while spectating.
++constexpr size_t CLC_CLIENT_NUM = 0x4;
+ constexpr size_t CLC_SERVER_COMMAND_SEQUENCE = 0x4544;
+ constexpr size_t CLC_SERVER_COMMANDS = 0x454c; // [128][0x400]
+ constexpr size_t CLC_SERVER_COMMAND_SIZE = 0x400;
+@@ -115,6 +130,12 @@ constexpr size_t GENTITY_INUSE = 0x1f0;
+ constexpr size_t GENTITY_CLIENT = 0x250;
+ constexpr size_t GCLIENT_SIZE = 0x171f0;
+ constexpr size_t GCLIENT_CLIENT_STATE = 0x16bf8;
++// The playerstate writer (0x142648240) checks this field on every active
++// client. Unless at least one has it negative (a normal, non-spectating
++// player), it treats the whole match as frozen and re-sends each previous
++// playerstate instead of the live one. Zeroed fake clients read as 0, which
++// is why client films carried a blank playerstate.
++constexpr size_t GCLIENT_SPECTATOR_CLIENT = 0x16ae4;
+ constexpr size_t SV_CLIENT_SIZE = 0xe5170;
+ constexpr size_t SV_CLIENT_RELIABLE_COMMANDS = 0x4830; // [128] {char*, pad}
+ constexpr size_t SV_CLIENT_RELIABLE_SEQUENCE = 0x5030;
+@@ -219,13 +240,24 @@ void report_hang(const char *step) {
+                       reinterpret_cast<void *>(context.Rsp), stack,
+                       sizeof(stack), &read);
+ 
++    // ...and so is anything pointing into another module's image (the
++    // client's own exe, ntdll, ...), which shows waits and crash handlers
+     int found = 0;
+-    for (size_t i = 0; i < read / sizeof(uint64_t) && found < 40; ++i) {
+-      if (stack[i] > base + 0x1000 && stack[i] < code_end) {
+-        log("  stack+%zx: %s", i * sizeof(uint64_t),
+-            describe_address(stack[i]).data());
+-        ++found;
++    for (size_t i = 0; i < read / sizeof(uint64_t) && found < 70; ++i) {
++      const bool in_game = stack[i] > base + 0x1000 && stack[i] < code_end;
++      HMODULE module{};
++      if (!in_game &&
++          (stack[i] < 0x10000 || stack[i] > 0x7fffffffffffull ||
++           !GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
++                                   GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
++                               reinterpret_cast<LPCSTR>(stack[i]), &module) ||
++           reinterpret_cast<uint64_t>(module) == base)) {
++        continue;
+       }
++
++      log("  stack+%zx: %s", i * sizeof(uint64_t),
++          describe_address(stack[i]).data());
++      ++found;
+     }
+   }
+ 
+@@ -515,6 +547,19 @@ void start_watchdog() {
+         hang_reported = true;
+         report_hang("main thread heartbeat");
+       }
++
++      // Also while a film is playing (not while it loads): a stall there
++      // leaves no other trace
++      static bool playback_hang_reported{};
++      const bool film_active =
++          *reinterpret_cast<const int *>(game::relocate(0x1591df098)) == 2 &&
++          *reinterpret_cast<const int *>(game::relocate(0x1453d8bc8)) == 11;
++      if (!film_active || now - main_heartbeat < 2000) {
++        playback_hang_reported = false;
++      } else if (!playback_hang_reported && now - main_heartbeat > 5000) {
++        playback_hang_reported = true;
++        report_hang("film playback");
++      }
+     }
+   }).detach();
+ }
+@@ -732,12 +777,29 @@ struct recorder_state {
+   int local_client_num{};
+   int client_num{};
+   int last_snapshot{-1};
++  int first_server_time{};
+   int last_server_time{};
+   int frames{};
+ };
+ 
+ recorder_state recorder{};
+ 
++// Automatic recording: every match joined on someone else's server is
++// recorded from the moment it is running until the map changes or we leave.
++bool auto_record{true};
++// A manual demo_stoprecord holds it off until the next map
++bool auto_record_held{};
++uint64_t next_auto_attempt{};
++int auto_seen_snapshot{-1};
++uint64_t last_stop_time{};
++
++// Leaving a match while recording waits for the film to be saved first
++uint64_t leave_pending_since{};
++bool leave_now{};
++
++// Small on-screen note while a film is being recorded
++std::atomic<bool> show_indicator{true};
++
+ // Fake server storage, allocated once on first use
+ struct fake_server {
+   uint8_t *snapshot{};
+@@ -779,7 +841,15 @@ utils::hook::detour get_player_state_hook;
+ 
+ uint8_t *get_player_state_stub(const int client_num) {
+   uint8_t *result = nullptr;
+-  if (!in_fake_writer || client_num == fake_writer_client_num) {
++  if (in_fake_writer) {
++    // The game's own getter does not follow the swapped level.clients on a
++    // client: it returned a blank block, so films held an empty playerstate
++    // for the recording player. Hand the writer our prepared copy directly.
++    if (client_num == fake_writer_client_num && client_num >= 0 &&
++        client_num < MAX_CLIENTS && fake.gclients) {
++      result = fake.gclients + static_cast<size_t>(client_num) * GCLIENT_SIZE;
++    }
++  } else {
+     // On some launches G_GetPlayerState loops forever when its return
+     // address is outside the game (Arxan), so call it through the callstack
+     // proxy
+@@ -790,9 +860,12 @@ uint8_t *get_player_state_stub(const int client_num) {
+ 
+   static std::atomic<int> logged{};
+   if (in_fake_writer && ++logged <= 60) {
+-    log("playerstate getter: client %d -> %p (ours %d, from %s)", client_num,
+-        result, fake_writer_client_num,
+-        describe_address(reinterpret_cast<uintptr_t>(_ReturnAddress())).data());
++    log("playerstate getter: client %d -> %p (ours %d, from %s) first ints %d %d %d",
++        client_num, result, fake_writer_client_num,
++        describe_address(reinterpret_cast<uintptr_t>(_ReturnAddress())).data(),
++        result ? *reinterpret_cast<const int *>(result) : -1,
++        result ? *reinterpret_cast<const int *>(result + 4) : -1,
++        result ? *reinterpret_cast<const int *>(result + 8) : -1);
+   }
+ 
+   return result;
+@@ -842,6 +915,31 @@ public:
+     saved_svs_clients_ = global<void *>(SVS_CLIENTS);
+     saved_svs_time_ = global<int>(SVS_TIME);
+     saved_sv_time_ = global<int>(SV_TIME);
++    saved_sv_physics_time_ = global<int>(SV_PHYSICS_TIME);
++    {
++      auto &server_center = global<float[3]>(SVS_MAP_CENTER);
++      const auto &client_center = global<float[3]>(CL_MAP_CENTER);
++      std::copy(std::begin(server_center), std::end(server_center),
++                saved_map_center_);
++      static int logged{};
++      if (logged++ < 3) {
++        log("map centre: server copy %g %g %g, client %g %g %g",
++            server_center[0], server_center[1], server_center[2],
++            client_center[0], client_center[1], client_center[2]);
++      }
++      std::copy(std::begin(client_center), std::end(client_center),
++                server_center);
++
++      auto &header_center = global<float[3]>(SV_HEADER_MAP_CENTER);
++      std::copy(std::begin(header_center), std::end(header_center),
++                saved_header_map_center_);
++      if (logged <= 3) {
++        log("map centre: writer copy was %g %g %g", header_center[0],
++            header_center[1], header_center[2]);
++      }
++      std::copy(std::begin(client_center), std::end(client_center),
++                header_center);
++    }
+     saved_match_state_ = global<void *>(SV_MATCH_STATE);
+     saved_level_clients_ = global<void *>(LEVEL_CLIENTS);
+     saved_level_actors_ = global<void *>(LEVEL_ACTORS);
+@@ -853,6 +951,19 @@ public:
+     global<void *>(SVS_CLIENTS) = fake.sv_clients;
+     global<int>(SVS_TIME) = server_time;
+     global<int>(SV_TIME) = server_time;
++    {
++      // Use the value the server sent with this snapshot when it is sane
++      int physics_time = *reinterpret_cast<const int *>(fake.snapshot + 0xc);
++      static int logged{};
++      if (logged++ < 5) {
++        log("physics time: snapshot %d, server time %d, stale global %d",
++            physics_time, server_time, saved_sv_physics_time_);
++      }
++      if (physics_time > server_time || physics_time < server_time - 1000) {
++        physics_time = server_time;
++      }
++      global<int>(SV_PHYSICS_TIME) = physics_time;
++    }
+     global<void *>(SV_MATCH_STATE) = match_state;
+     global<void *>(LEVEL_CLIENTS) = fake.gclients;
+     global<void *>(LEVEL_ACTORS) = fake.actors;
+@@ -878,6 +989,15 @@ public:
+     global<void *>(SVS_CLIENTS) = saved_svs_clients_;
+     global<int>(SVS_TIME) = saved_svs_time_;
+     global<int>(SV_TIME) = saved_sv_time_;
++    global<int>(SV_PHYSICS_TIME) = saved_sv_physics_time_;
++    {
++      auto &server_center = global<float[3]>(SVS_MAP_CENTER);
++      std::copy(std::begin(saved_map_center_), std::end(saved_map_center_),
++                server_center);
++      auto &header_center = global<float[3]>(SV_HEADER_MAP_CENTER);
++      std::copy(std::begin(saved_header_map_center_),
++                std::end(saved_header_map_center_), header_center);
++    }
+     global<void *>(SV_MATCH_STATE) = saved_match_state_;
+     global<void *>(LEVEL_CLIENTS) = saved_level_clients_;
+     global<void *>(LEVEL_ACTORS) = saved_level_actors_;
+@@ -900,6 +1020,9 @@ private:
+   void *saved_svs_clients_;
+   int saved_svs_time_;
+   int saved_sv_time_;
++  int saved_sv_physics_time_;
++  float saved_map_center_[3];
++  float saved_header_map_center_[3];
+   void *saved_match_state_;
+   void *saved_level_clients_;
+   void *saved_level_actors_;
+@@ -911,7 +1034,13 @@ uint8_t *get_client_connection(const int local_client_num) {
+          static_cast<size_t>(local_client_num) * CLC_SIZE;
+ }
+ 
+-bool record_self{};
++int get_own_client_num(const int local_client_num) {
++  return *reinterpret_cast<const int *>(
++      get_client_connection(local_client_num) + CLC_CLIENT_NUM);
++}
++
++// On by default: without our own entity the film never finishes loading
++bool record_self{true};
+ 
+ void log_entity(const char *what, const uint8_t *es) {
+   log("entity %s: number %d eType %u clientNum %u trType %u eFlags %08x "
+@@ -927,6 +1056,146 @@ void log_entity(const char *what, const uint8_t *es) {
+       *reinterpret_cast<const uint32_t *>(es + 0x168), es[0x16c]);
+ }
+ 
++// --- Server commands in the film -------------------------------------------
++// The film starts from the gamestate the server sent when we connected, but
++// recording starts later. Configstrings the server changed in between (sent
++// as "2 <index> <value>" commands) would be missing from the film; playback
++// then has e.g. no vehicle definition for a scorestreak and crashes in script.
++// So remember the latest command per configstring since the gamestate, and
++// play them into the film's first frames before the live commands.
++std::map<int, std::string> configstring_updates; // since the last gamestate
++int tracked_command_sequence{};
++int film_command_client{-1}; // our client number, fixed when recording starts
++
++struct film_command_state {
++  std::vector<char> ring;            // [128][0x400], what the writer reads
++  std::deque<std::string> pending;   // configstring catch-up, oldest first
++  int sequence{};                    // last command number handed to the film
++  int live_sequence{};               // last client command already queued
++};
++film_command_state film_commands;
++
++const char *client_command(const uint8_t *clc, const int sequence) {
++  return reinterpret_cast<const char *>(
++      clc + CLC_SERVER_COMMANDS +
++      static_cast<size_t>(sequence & (MAX_RELIABLE_COMMANDS - 1)) *
++          CLC_SERVER_COMMAND_SIZE);
++}
++
++// Called after every parsed server message while connected to a server
++void track_configstring_commands(const int local_client_num) {
++  const auto *clc = get_client_connection(local_client_num);
++  const int sequence =
++      *reinterpret_cast<const int *>(clc + CLC_SERVER_COMMAND_SEQUENCE);
++  if (sequence < tracked_command_sequence ||
++      sequence - tracked_command_sequence > MAX_RELIABLE_COMMANDS) {
++    tracked_command_sequence = sequence - MAX_RELIABLE_COMMANDS;
++  }
++
++  for (int i = tracked_command_sequence + 1; i <= sequence; ++i) {
++    const char *command = client_command(clc, i);
++    if (command[0] == '2' && command[1] == ' ') {
++      const std::string text(command,
++                             strnlen(command, CLC_SERVER_COMMAND_SIZE - 1));
++      configstring_updates[atoi(command + 2)] = text;
++    }
++  }
++  tracked_command_sequence = sequence;
++}
++
++void begin_film_commands(const int local_client_num, const int client_num) {
++  film_command_client = client_num;
++  const auto *clc = get_client_connection(local_client_num);
++  film_commands.ring.assign(
++      static_cast<size_t>(MAX_RELIABLE_COMMANDS) * CLC_SERVER_COMMAND_SIZE, 0);
++  film_commands.pending.clear();
++  for (const auto &[index, command] : configstring_updates) {
++    film_commands.pending.push_back(command);
++  }
++  film_commands.sequence = 0;
++  film_commands.live_sequence =
++      *reinterpret_cast<const int *>(clc + CLC_SERVER_COMMAND_SEQUENCE);
++  log("film commands: %zu configstring updates to replay",
++      film_commands.pending.size());
++}
++
++// Queues this frame's commands and points the fake server client at them
++void feed_film_commands(const int local_client_num, uint8_t *sv_client) {
++  if (film_commands.ring.empty()) {
++    return;
++  }
++
++  constexpr int MAX_PER_FRAME = 96;
++  int queued = 0;
++  const auto push = [&](const char *command) {
++    ++film_commands.sequence;
++    char *slot = film_commands.ring.data() +
++                 static_cast<size_t>(film_commands.sequence &
++                                     (MAX_RELIABLE_COMMANDS - 1)) *
++                     CLC_SERVER_COMMAND_SIZE;
++    strncpy_s(slot, CLC_SERVER_COMMAND_SIZE, command, _TRUNCATE);
++    ++queued;
++  };
++
++  while (!film_commands.pending.empty() && queued < MAX_PER_FRAME) {
++    push(film_commands.pending.front().data());
++    film_commands.pending.pop_front();
++  }
++
++  // Live commands only once the catch-up is done, so the order is kept
++  if (film_commands.pending.empty()) {
++    const auto *clc = get_client_connection(local_client_num);
++    const int sequence =
++        *reinterpret_cast<const int *>(clc + CLC_SERVER_COMMAND_SEQUENCE);
++    if (sequence - film_commands.live_sequence > MAX_RELIABLE_COMMANDS) {
++      film_commands.live_sequence = sequence - MAX_RELIABLE_COMMANDS;
++    }
++    while (film_commands.live_sequence < sequence && queued < MAX_PER_FRAME) {
++      push(client_command(clc, ++film_commands.live_sequence));
++    }
++  }
++
++  *reinterpret_cast<int *>(sv_client + SV_CLIENT_RELIABLE_SEQUENCE) =
++      film_commands.sequence;
++  for (int i = 0; i < MAX_RELIABLE_COMMANDS; ++i) {
++    *reinterpret_cast<char **>(sv_client + SV_CLIENT_RELIABLE_COMMANDS +
++                               i * 16) =
++        film_commands.ring.data() +
++        static_cast<size_t>(i) * CLC_SERVER_COMMAND_SIZE;
++  }
++}
++
++// --- clientActive_t pointer -------------------------------------------------
++// The pointer to the client's own state (cl) is stored encrypted and only the
++// protected getter can decode it, and that getter must be called from game
++// code. So a tiny game function that calls it gets a detour right after the
++// call, which keeps a copy of the decoded pointer; calling that function
++// then gives us the pointer.
++WEAK game::symbol<int(int localClientNum)> CL_GetClientActiveField{
++    0x0, 0x141321150, 0x0};
++uint8_t *captured_client_active{};
++
++void install_client_active_capture() {
++  // 0x141321159: mov eax, [rax + 0x10e0f0]; add rsp, 0x28; ret (+ padding)
++  const auto stub = utils::hook::assemble([](utils::hook::assembler &a) {
++    a.get().mov(asmjit::x86::rcx,
++                reinterpret_cast<uint64_t>(&captured_client_active));
++    a.get().mov(asmjit::x86::qword_ptr(asmjit::x86::rcx), asmjit::x86::rax);
++    a.get().mov(asmjit::x86::eax,
++                asmjit::x86::dword_ptr(asmjit::x86::rax, 0x10e0f0));
++    a.get().add(asmjit::x86::rsp, 0x28);
++    a.get().ret();
++  });
++  // "safe" far jump: the plain one goes through rax, which holds the pointer
++  utils::hook::jump(game::relocate(0x141321159), stub, true, true);
++}
++
++const uint8_t *get_client_active(const int local_client_num) {
++  captured_client_active = nullptr;
++  CL_GetClientActiveField(local_client_num);
++  return captured_client_active;
++}
++
+ // Fills the fake server records from the snapshot in fake.snapshot
+ void build_fake_server(const int local_client_num) {
+   const uint8_t *snap = fake.snapshot;
+@@ -950,6 +1219,21 @@ void build_fake_server(const int local_client_num) {
+     auto *ent = fake.gentities + number * FAKE_GENTITY_SIZE;
+     memcpy(ent, es, ENTITY_STATE_SIZE);
+     ent[GENTITY_INUSE] = 1;
++
++    // Research: kill events as the server sent them, to compare with playback
++    static int logged_events{};
++    if (*reinterpret_cast<const uint16_t *>(es + 0x1a0) == 156 &&
++        logged_events < 12) {
++      ++logged_events;
++      std::string fields;
++      for (size_t o = 0; o < ENTITY_STATE_SIZE; o += 4) {
++        const int value = *reinterpret_cast<const int *>(es + o);
++        if (value != 0) {
++          fields += utils::string::va("+%zx=%d ", o, value);
++        }
++      }
++      log("kill event entity: %s", fields.data());
++    }
+   }
+ 
+   // Client states, indexed by the client number stored at their start
+@@ -964,6 +1248,7 @@ void build_fake_server(const int local_client_num) {
+ 
+     auto *gclient = fake.gclients + number * GCLIENT_SIZE;
+     memcpy(gclient + GCLIENT_CLIENT_STATE, cs, CLIENT_STATE_SIZE);
++    *reinterpret_cast<int *>(gclient + GCLIENT_SPECTATOR_CLIENT) = -1;
+ 
+     // Every player in the match is an active server client so their client
+     // state (name, team, character) is recorded; without it Theater can't
+@@ -984,6 +1269,54 @@ void build_fake_server(const int local_client_num) {
+   auto *gclient = fake.gclients + client_num * GCLIENT_SIZE;
+   memcpy(gclient, ps, PLAYER_STATE_SIZE);
+ 
++  // The server doesn't keep a client's own view angles up to date in its
++  // snapshots: the client works them out itself from its mouse input
++  // (cl.viewangles) plus the playerstate's delta_angles. Playback has no
++  // input, it shows ps.viewangles as recorded, so put the real ones in.
++  // Not while the playerstate is someone else's (killcam, spectating).
++  constexpr size_t CL_VIEWANGLES = 0xB8C8;           // float[3], per CL_AddViewAngles 0x14131f830
++  constexpr size_t PS_DELTA_ANGLES = 0xD0;           // float[3]
++  constexpr size_t PS_VIEWANGLES = 0x318;            // float[3]
++  const auto *client_active = get_client_active(local_client_num);
++  if (client_active &&
++      (film_command_client < 0 || film_command_client == client_num)) {
++    const auto *input =
++        reinterpret_cast<const float *>(client_active + CL_VIEWANGLES);
++    const auto *delta =
++        reinterpret_cast<const float *>(gclient + PS_DELTA_ANGLES);
++    auto *view = reinterpret_cast<float *>(gclient + PS_VIEWANGLES);
++
++    static int logged_angles{};
++    if (logged_angles++ % 40 == 0 && logged_angles < 2000) {
++      log("view angles: snapshot %.1f %.1f %.1f, input %.1f %.1f %.1f, "
++          "delta %.1f %.1f %.1f",
++          view[0], view[1], view[2], input[0], input[1], input[2], delta[0],
++          delta[1], delta[2]);
++    }
++
++    for (int i = 0; i < 3; ++i) {
++      float angle = std::fmod(input[i] + delta[i], 360.0f);
++      if (angle < 0.0f) {
++        angle += 360.0f;
++      }
++      view[i] = angle;
++    }
++  }
++
++  // Research: our position/velocity/angles as recorded, to compare with what
++  // playback decodes at the same server time
++  static int ps_checks{};
++  if (ps_checks++ % 40 == 0 && ps_checks < 4000) {
++    const auto *f = reinterpret_cast<const float *>(ps);
++    log("ps check: time %d origin %.1f %.1f %.1f vel %.1f %.1f %.1f "
++        "+0xd4.. %.1f %.1f %.1f pm_type %d flags %08x",
++        *reinterpret_cast<const int *>(snap + SNAP_SERVER_TIME), f[12], f[13],
++        f[14], f[15], f[16], f[17], f[53], f[54], f[55],
++        *reinterpret_cast<const int *>(ps + 8),
++        *reinterpret_cast<const uint32_t *>(ps + 0x20));
++  }
++  *reinterpret_cast<int *>(gclient + GCLIENT_SPECTATOR_CLIENT) = -1;
++
+   // The server never sends a client its own entity (the client builds it
+   // from the playerstate). Building it the way the server does is still
+   // experimental (films with it freeze while loading), so it's opt-in.
+@@ -1012,16 +1345,29 @@ void build_fake_server(const int local_client_num) {
+   *reinterpret_cast<int *>(sv_client) = SV_CLIENT_STATE_ACTIVE;
+   *reinterpret_cast<uint8_t **>(sv_client + SV_CLIENT_GENTITY) = gentity;
+ 
+-  // Reliable commands this client received become the film's server commands
+-  auto *clc = get_client_connection(local_client_num);
+-  const int sequence =
+-      *reinterpret_cast<int *>(clc + CLC_SERVER_COMMAND_SEQUENCE);
+-  *reinterpret_cast<int *>(sv_client + SV_CLIENT_RELIABLE_SEQUENCE) = sequence;
+-  for (int i = 0; i < MAX_RELIABLE_COMMANDS; ++i) {
+-    *reinterpret_cast<uint8_t **>(sv_client + SV_CLIENT_RELIABLE_COMMANDS +
+-                                  i * 16) =
+-        clc + CLC_SERVER_COMMANDS + i * CLC_SERVER_COMMAND_SIZE;
++  // Reliable commands this client received become the film's server
++  // commands (after any configstring catch-up)
++  // ...and they always belong to us, also while the playerstate is someone
++  // else's (killcam, spectating): otherwise the writer treats that player as
++  // a new client and replays every command so far under their number.
++  if (film_command_client >= 0 && film_command_client < MAX_CLIENTS &&
++      film_command_client != client_num) {
++    static int logged_switches{};
++    if (logged_switches++ < 20) {
++      log("playerstate is client %d's, ours is %d", client_num,
++          film_command_client);
++    }
++
++    auto *own_gentity = fake.gentities + film_command_client * FAKE_GENTITY_SIZE;
++    sv_client = fake.sv_clients + film_command_client * SV_CLIENT_SIZE;
++    *reinterpret_cast<int *>(sv_client) = SV_CLIENT_STATE_ACTIVE;
++    *reinterpret_cast<uint8_t **>(sv_client + SV_CLIENT_GENTITY) = own_gentity;
++    if (!*reinterpret_cast<uint8_t **>(own_gentity + GENTITY_CLIENT)) {
++      *reinterpret_cast<uint8_t **>(own_gentity + GENTITY_CLIENT) =
++          fake.gclients + film_command_client * GCLIENT_SIZE;
++    }
+   }
++  feed_film_commands(local_client_num, sv_client);
+ }
+ 
+ int get_latest_snapshot_number(const int local_client_num) {
+@@ -1132,11 +1478,143 @@ void try_build_summary() {
+   }
+ }
+ 
++// --- Theater tile info -------------------------------------------------------
++// The engine builds a film's tile data (map, title, length) from the host's
++// match record, which a client doesn't have, so we work it out ourselves.
++std::optional<std::string> translate(const std::string &reference) {
++  if (reference.empty()) {
++    return {};
++  }
++
++  const char *text = game::seh::SEH_SafeTranslateString(reference.data());
++  if (!text || !*text || text[0] == '^' || reference == text ||
++      std::strstr(text, "UNLOCALIZED")) {
++    return {};
++  }
++  return std::string(text);
++}
++
++// Map table entries as laid out in this game build (checked against the
++// running game: the next entry's name follows 0xF8 bytes on)
++constexpr size_t MAP_ENTRY_SIZE = 0xF8;
++constexpr size_t MAP_ENTRY_NAME = 0x0;          // "mp_biodome"
++constexpr size_t MAP_ENTRY_DISPLAY_NAME = 0x10; // text reference
++constexpr size_t MAP_ENTRY_UNIQUE_ID = 0xF0;
++
++struct map_lookup {
++  std::string name;
++  int unique_id{};
++  std::string display_reference;
++};
++
++void find_map(map_lookup &lookup) {
++  game::db::xasset::DB_EnumXAssets(
++      game::db::xasset::XAssetType::MAPTABLE,
++      [](game::db::xasset::XAssetHeader header, void *data) {
++        auto &wanted = *static_cast<map_lookup *>(data);
++        const auto *table = header.mapTable;
++        if (wanted.unique_id || !table || !table->maps ||
++            table->mapCount > 512) {
++          return;
++        }
++
++        const auto *entries = reinterpret_cast<const uint8_t *>(table->maps);
++        for (uint32_t i = 0; i < table->mapCount; ++i) {
++          const auto *entry = entries + i * MAP_ENTRY_SIZE;
++          const auto *name =
++              *reinterpret_cast<const char *const *>(entry + MAP_ENTRY_NAME);
++          if (!name || _stricmp(name, wanted.name.data()) != 0) {
++            continue;
++          }
++
++          wanted.unique_id =
++              *reinterpret_cast<const int *>(entry + MAP_ENTRY_UNIQUE_ID);
++          const auto *display = *reinterpret_cast<const char *const *>(
++              entry + MAP_ENTRY_DISPLAY_NAME);
++          wanted.display_reference = display ? display : "";
++          return;
++        }
++      },
++      &lookup, false);
++}
++
++std::string gametype_display_name(const std::string &gametype) {
++  static const std::map<std::string, std::string> names = {
++      {"tdm", "Team Deathmatch"},     {"dm", "Free-For-All"},
++      {"dom", "Domination"},          {"koth", "Hardpoint"},
++      {"sd", "Search and Destroy"},   {"ctf", "Capture the Flag"},
++      {"dem", "Demolition"},          {"conf", "Kill Confirmed"},
++      {"ball", "Uplink"},             {"escort", "Safeguard"},
++      {"gun", "Gun Game"},            {"clean", "Fracture"},
++      {"prop", "Prop Hunt"},          {"infect", "Infected"},
++      {"sniperonly", "Snipers Only"}, {"sas", "Sticks and Stones"},
++      {"oic", "One in the Chamber"},  {"shrp", "Sharpshooter"},
++  };
++
++  if (const auto it = names.find(gametype); it != names.end()) {
++    return it->second;
++  }
++
++  std::string reference = "MPUI_" + gametype;
++  for (auto &c : reference) {
++    c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
++  }
++  if (auto text = translate(reference)) {
++    return *text;
++  }
++  return gametype;
++}
++
++demonware::client_film_info film_info{};
++
++void describe_film() {
++  film_info = {};
++  film_info.create_time = static_cast<uint32_t>(time(nullptr));
++
++  map_lookup map;
++  map.name = std::string(game::get_mapname().value_or(""));
++  const std::string gametype(game::get_g_gametype().value_or(""));
++
++  std::string map_title = map.name;
++  if (!map.name.empty()) {
++    find_map(map);
++    film_info.map_id = map.unique_id;
++    if (auto text = translate(map.display_reference)) {
++      map_title = *text;
++    }
++  }
++
++  film_info.gametype_name = gametype_display_name(gametype);
++  film_info.title = film_info.gametype_name + " on " + map_title;
++
++  log("film info: map '%s' (id %d, name ref '%s'), gametype '%s', title '%s'",
++      map.name.data(), map.unique_id, map.display_reference.data(),
++      gametype.data(), film_info.title.data());
++  demonware::set_client_film_info(film_info);
++}
++
+ void stop_recording(const bool print) {
+-  if (!recorder.active) {
++  // Stopping can end in a disconnect, which stops recording
++  static bool stopping{};
++  if (!recorder.active || stopping) {
+     return;
+   }
+ 
++  stopping = true;
++  struct stopping_reset {
++    ~stopping_reset() { stopping = false; }
++  } stopping_guard;
++
++  // The film's length, for its Theater tile
++  if (recorder.last_server_time > recorder.first_server_time) {
++    film_info.duration_ms = static_cast<uint32_t>(recorder.last_server_time -
++                                                  recorder.first_server_time);
++  }
++  demonware::set_client_film_info(film_info);
++
++  last_stop_time = GetTickCount64();
++  next_auto_attempt = last_stop_time + 1000;
++
+   if (Demo_IsRecording()) {
+     log_upload_state("before stop");
+     log("stopping");
+@@ -1205,17 +1683,24 @@ bool start_recording() {
+     return false;
+   }
+ 
+-  const int client_num =
++  // The film is ours even when the view at this moment is someone else's
++  const int view_client_num =
+       *reinterpret_cast<const int *>(fake.snapshot + SNAP_PS);
++  int client_num = get_own_client_num(local_client_num);
++  if (client_num < 0 || client_num >= MAX_CLIENTS) {
++    client_num = view_client_num;
++  }
+ 
+-  log("start: client %d, snapshot %d, gamestate %zu bytes, header %d %d, "
+-      "client glass %p",
+-      client_num, snapshot_num, gamestate.payload.size(), gamestate.header[0],
+-      gamestate.header[1], global<void *>(CL_GLASS_SYSTEM));
++  log("start: client %d (view is client %d's), snapshot %d, gamestate %zu "
++      "bytes, header %d %d, client glass %p",
++      client_num, view_client_num, snapshot_num, gamestate.payload.size(),
++      gamestate.header[0], gamestate.header[1],
++      global<void *>(CL_GLASS_SYSTEM));
+ 
+   {
+     scoped_step step("Demo_StartRecord_f");
+     demonware::set_client_recording(true);
++    describe_film();
+     Demo_StartRecord_f();
+   }
+   log("Demo_StartRecord_f returned, recording: %d", Demo_IsRecording());
+@@ -1227,8 +1712,14 @@ bool start_recording() {
+   log("film max clients %d -> %d", global<int>(DEMO_MAX_CLIENTS), MAX_CLIENTS);
+   global<int>(DEMO_MAX_CLIENTS) = MAX_CLIENTS;
+ 
++  // The writer sends each playerstate as a change from its previous copy, and
++  // playback starts from blank ones, so start blank here too.
++  memset(reinterpret_cast<void *>(game::relocate(DEMO_PREV_PLAYER_STATES)), 0,
++         PLAYER_STATE_SIZE * MAX_CLIENTS);
++
+   if (!Demo_IsRecording()) {
+     log("the engine refused to start recording");
++    demonware::set_client_recording(false);
+     return false;
+   }
+ 
+@@ -1249,10 +1740,10 @@ bool start_recording() {
+     msg.bit = gamestate.end_bit + 64;
+   }
+ 
+-  // Don't replay commands the client already had before recording started
+-  auto *clc = get_client_connection(local_client_num);
+-  global<int[MAX_CLIENTS]>(DEMO_LAST_COMMAND)[client_num] =
+-      *reinterpret_cast<int *>(clc + CLC_SERVER_COMMAND_SEQUENCE);
++  // The film gets its own command numbering from 0: first the configstring
++  // changes since the gamestate, then whatever arrives while recording
++  begin_film_commands(local_client_num, client_num);
++  global<int[MAX_CLIENTS]>(DEMO_LAST_COMMAND)[client_num] = 0;
+ 
+   // The header carries the anim trees, so bundle them first
+   {
+@@ -1272,9 +1763,17 @@ bool start_recording() {
+         *reinterpret_cast<const int *>(fake.snapshot + SNAP_SERVER_TIME);
+     build_fake_server(local_client_num);
+     scoped_fake_server _(server_time, fake.snapshot + SNAP_MATCH_STATE,
+-                         client_num);
++                         view_client_num);
++    // Which player the film opens on. Hosted films store the host here; left
++    // at -1, Theater opens on a slot that has no recorded view.
++    constexpr uintptr_t DEMO_DEFAULT_CLIENT = 0x15943f568;
++    log("film default client %d -> %d", global<int>(DEMO_DEFAULT_CLIENT),
++        client_num);
++    global<int>(DEMO_DEFAULT_CLIENT) = client_num;
+     Demo_WriteHeader();
+     Demo_WriteGamestate(client_num, &msg, gamestate.header[0]);
++    log("film default client after header: %d",
++        global<int>(DEMO_DEFAULT_CLIENT));
+   }
+   log("gamestate block written");
+ 
+@@ -1282,6 +1781,9 @@ bool start_recording() {
+   recorder.active = true;
+   recorder.local_client_num = local_client_num;
+   recorder.client_num = client_num;
++  recorder.first_server_time =
++      *reinterpret_cast<const int *>(fake.snapshot + SNAP_SERVER_TIME);
++  recorder.last_server_time = recorder.first_server_time;
+ 
+   log("client recording started (client %d, gamestate %zu bytes)", client_num,
+       gamestate.payload.size());
+@@ -1301,6 +1803,10 @@ void cl_parse_server_message_stub(const int local_client_num, msg_t *msg) {
+ 
+   cl_parse_server_message_hook.invoke<void>(local_client_num, msg);
+   packet_header_valid = false;
++
++  if (local_client_num == 0 && !Demo_IsPlaying()) {
++    track_configstring_commands(local_client_num);
++  }
+ }
+ 
+ void cl_parse_gamestate_stub(const int local_client_num, msg_t *msg) {
+@@ -1308,6 +1814,8 @@ void cl_parse_gamestate_stub(const int local_client_num, msg_t *msg) {
+     // A new gamestate means a new map or connection
+     stop_recording(true);
+     on_new_gamestate_anims();
++    auto_record_held = false;
++    auto_seen_snapshot = -1;
+ 
+     gamestate.payload.assign(msg->data, msg->data + msg->cursize);
+     gamestate.header[0] = packet_header_valid ? packet_header[0] : 0;
+@@ -1320,6 +1828,13 @@ void cl_parse_gamestate_stub(const int local_client_num, msg_t *msg) {
+ 
+   cl_parse_gamestate_hook.invoke<void>(local_client_num, msg);
+ 
++  if (local_client_num == 0) {
++    // The gamestate holds every configstring as of now; start over
++    configstring_updates.clear();
++    tracked_command_sequence = *reinterpret_cast<const int *>(
++        get_client_connection(local_client_num) + CLC_SERVER_COMMAND_SEQUENCE);
++  }
++
+   // The server's message ends with svc_EOF right after the gamestate. The
+   // decompressed copy can have stray bytes after it, and in a film those
+   // would be read as the next message, so cut it there.
+@@ -1339,6 +1854,196 @@ void cl_parse_gamestate_stub(const int local_client_num, msg_t *msg) {
+     }
+   }
+ }
++
++// Leaving the match (Esc menu, kicked, server gone): finish the film while
++// the connection's data is still there, so it ends cleanly and gets saved.
++//
++// The "disconnect" command (Esc menu > leave) is held back until the film is
++// saved: the error it ends with cancels the game's save task half way, and
++// after that no film can be loaded in Theater until the game is restarted.
++WEAK game::symbol<void()> CL_Disconnect_f{0x0, 0x14134CCB0, 0x0};
++utils::hook::detour cl_disconnect_f_hook;
++
++void cl_disconnect_f_stub() {
++  if (leave_now) {
++    leave_now = false;
++    cl_disconnect_f_hook.invoke<void>();
++    return;
++  }
++
++  if (leave_pending_since) {
++    return; // already on its way
++  }
++
++  if (!recorder.active) {
++    cl_disconnect_f_hook.invoke<void>();
++    return;
++  }
++
++  log("leaving: saving the film first");
++  auto_record_held = true;
++  stop_recording(true);
++  leave_pending_since = GetTickCount64();
++}
++
++void finish_pending_leave() {
++  if (!leave_pending_since) {
++    return;
++  }
++
++  constexpr uint64_t MAX_WAIT = 5000;
++  const auto waited = GetTickCount64() - leave_pending_since;
++  if (demonware::client_film_saving() && waited < MAX_WAIT) {
++    return;
++  }
++
++  log("leaving: film %s after %llu ms",
++      demonware::client_film_saving() ? "NOT saved" : "saved", waited);
++  leave_pending_since = 0;
++  leave_now = true;
++  game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
++}
++
++// The engine paces a film's upload for a real online service: a few packets
++// a second at most, by sleeping in the upload thread. Our "service" is a
++// local file, and at that pace a film was still being written long after its
++// match ended (so the next match's film could not start). Send it all.
++constexpr uintptr_t DEMO_UPLOAD_THROTTLED = 0x1597eba10; // int, reset per call
++utils::hook::detour upload_limit_hook;
++
++int upload_limit_stub(const int requested) {
++  global<int>(DEMO_UPLOAD_THROTTLED) = 0;
++  return requested;
++}
++
++// CL_Disconnect itself starts with a protected jump and can't be detoured,
++// so each of its callers goes through a stub that runs this first.
++constexpr uintptr_t CL_DISCONNECT_CALLS[] = {
++    0x14134c6b8, 0x14134cb59, 0x14134cd00, 0x141359d43, 0x141e0e0e1,
++    0x142149246, 0x142149c87, 0x14214a344, 0x14283aae2, 0x14283ab71,
++};
++
++void before_disconnect(const int local_client_num) {
++  if (local_client_num == 0) {
++    if (recorder.active) {
++      log("disconnecting: saving the film");
++      stop_recording(true);
++    }
++
++    // Nothing to record from until the next connection sends a gamestate
++    if (!Demo_IsPlaying()) {
++      gamestate.valid = false;
++    }
++  }
++}
++
++void install_disconnect_hook() {
++  const auto stub = utils::hook::assemble([](utils::hook::assembler &a) {
++    a.pushad64();
++    a.call_aligned(before_disconnect); // rcx is still the local client
++    a.popad64();
++
++    // On to the real function, returning straight to the game's caller
++    a.get().mov(rax, game::relocate(0x14135D860));
++    a.get().jmp(rax);
++  });
++
++  for (const auto address : CL_DISCONNECT_CALLS) {
++    utils::hook::call(game::relocate(address), stub);
++  }
++}
++
++// Starts a film once a joined match is running. The engine refuses while the
++// previous film is still being saved, so this simply tries again.
++void try_auto_record() {
++  if (!auto_record || auto_record_held || !gamestate.valid ||
++      game::server_running() || Demo_IsPlaying() || Demo_IsRecording() ||
++      !game::com::Com_IsInGame() || Com_IsRunningUILevel()) {
++    auto_seen_snapshot = -1;
++    return;
++  }
++
++  // The engine refuses to start while the previous film is being saved
++  if (demonware::client_film_saving() &&
++      GetTickCount64() - last_stop_time < 60000) {
++    return;
++  }
++
++  const auto now = GetTickCount64();
++  if (now < next_auto_attempt) {
++    return;
++  }
++  next_auto_attempt = now + 2000;
++
++  // Only once snapshots are coming in: seen on one attempt, moved on by the
++  // next
++  const int snapshot = get_latest_snapshot_number(0);
++  if (snapshot < 0 || auto_seen_snapshot < 0 ||
++      snapshot == auto_seen_snapshot) {
++    auto_seen_snapshot = snapshot;
++    return;
++  }
++
++  // ...and once the view is our own. Before the first spawn the server shows
++  // us another player; a film that starts there opens on a player slot that
++  // has nothing recorded for us yet.
++  int fetched{};
++  if (!ensure_fake_server() || !fetch_latest_snapshot(0, &fetched)) {
++    return;
++  }
++
++  const int view_client_num =
++      *reinterpret_cast<const int *>(fake.snapshot + SNAP_PS);
++  const int own_client_num = get_own_client_num(0);
++  if (view_client_num != own_client_num) {
++    static int waits_logged{};
++    if (waits_logged++ < 50) {
++      log("auto record: waiting for our own view (showing client %d, we are "
++          "%d)",
++          view_client_num, own_client_num);
++    }
++    next_auto_attempt = now + 500;
++    return;
++  }
++
++  static int attempts_logged{};
++  if (attempts_logged++ < 200) {
++    log("auto record: starting (snapshot %d)", snapshot);
++  }
++
++  if (!start_recording()) {
++    auto_seen_snapshot = -1;
++  }
++}
++
++void draw_recording_indicator() {
++  if (!show_indicator || !Demo_IsRecording() || Demo_IsPlaying() ||
++      !game::com::Com_IsInGame()) {
++    return;
++  }
++
++  // Bottom left corner of the game window
++  static HWND window{};
++  if (!window || !IsWindow(window)) {
++    window = FindWindowA("CoDBlackOps", nullptr);
++  }
++
++  RECT rect{};
++  if (!window || !GetClientRect(window, &rect) || rect.bottom <= 0) {
++    return;
++  }
++
++  static const uint32_t *font =
++      reinterpret_cast<const uint32_t *>(game::relocate(0x1433519B0));
++  const float scale = 0.4f * static_cast<float>(rect.bottom) / 1440.0f + 0.1f;
++  game::vec4_t color = {.r = 0.8f, .g = 0.8f, .b = 0.8f, .a = 0.7f};
++
++  game::render::R_AddCmdDrawText("RECORDING", std::numeric_limits<int>::max(),
++                                 font, 6.0f,
++                                 static_cast<float>(rect.bottom) - 6.0f, scale,
++                                 scale, 0.0f, &color,
++                                 game::itemTextStyle::NORMAL);
++}
+ } // namespace
+ 
+ struct component final : client_component {
+@@ -1361,10 +2066,30 @@ struct component final : client_component {
+                                         cl_parse_server_message_stub);
+     cl_parse_gamestate_hook.create(CL_ParseGamestate.get(),
+                                    cl_parse_gamestate_stub);
++    install_disconnect_hook();
++    cl_disconnect_f_hook.create(CL_Disconnect_f.get(), cl_disconnect_f_stub);
++    upload_limit_hook.create(game::relocate(0x14260ad30), upload_limit_stub);
++    scheduler::loop(draw_recording_indicator, scheduler::pipeline::renderer);
+ 
+     // Replaces demo_patches' plain demo_record: as a client we need to
+     // drive the recorder ourselves
+-    command::add("demo_record", [] { start_recording(); });
++    command::add("demo_record", [] {
++      auto_record_held = false;
++      start_recording();
++    });
++    command::add("demo_autorecord", [](const command::params &params) {
++      if (params.size() > 1) {
++        auto_record = std::atoi(params.get(1)) != 0;
++        auto_record_held = false;
++      }
++      log("demo_autorecord %d", auto_record);
++    });
++    command::add("demo_indicator", [](const command::params &params) {
++      if (params.size() > 1) {
++        show_indicator = std::atoi(params.get(1)) != 0;
++      }
++      log("demo_indicator %d", show_indicator.load());
++    });
+     command::add("demo_recordself", [](const command::params &params) {
+       if (params.size() > 1) {
+         record_self = std::atoi(params.get(1)) != 0;
+@@ -1376,6 +2101,8 @@ struct component final : client_component {
+     // different name
+     command::add("demo_stoprecord", [] {
+       arm_heartbeat_watch();
++      // Not again until the next map
++      auto_record_held = true;
+       if (recorder.active) {
+         stop_recording(true);
+       } else if (Demo_IsRecording()) {
+@@ -1383,6 +2110,7 @@ struct component final : client_component {
+       }
+     });
+ 
++    install_client_active_capture();
+     install_traces();
+     install_anim_capture();
+     get_player_state_hook.create(G_GetPlayerState.get(), get_player_state_stub);
+@@ -1391,8 +2119,10 @@ struct component final : client_component {
+     scheduler::loop(
+         [] {
+           main_heartbeat = GetTickCount64();
++          finish_pending_leave();
+ 
+           if (!recorder.active) {
++            try_auto_record();
+             return;
+           }
+ 
+diff --git a/src/client/component/demo_patches.cpp b/src/client/component/demo_patches.cpp
+index 0562ec60..0065e75e 100644
+--- a/src/client/component/demo_patches.cpp
++++ b/src/client/component/demo_patches.cpp
+@@ -83,6 +83,62 @@ void dump_game_image() {
+   printf("[ Demo ] Wrote %s (%zu MB, %zu MB readable)\n", path, size >> 20,
+          copied >> 20);
+ }
++
++// --- Asset list of films recorded as a client -------------------------------
++// A film carries the list of every asset (models, vehicles, ...) the server
++// registered at map load; playback rebuilds the client's asset table from it,
++// so entity model numbers in the film line up. Only the server side writes
++// that list, so a film recorded while connected to someone else's server has
++// an empty one. Playback then knows a few hundred models instead of thousands
++// and crashes as soon as a script asks for one it doesn't have (a corpse's
++// body model, a scorestreak vehicle).
++//
++// A client that joins a server never gets such a list either: it registers
++// the same assets itself, in the same order as the server. So for films with
++// an empty list, playback does exactly that instead of reading the list.
++constexpr uintptr_t DEMO_ASSET_LIST_DATA = 0x1593bf558;
++constexpr uintptr_t BG_CACHE_ALLOW_REGISTER = 0x1436841e1;
++
++bool demo_is_playing() {
++  return reinterpret_cast<bool (*)()>(game::relocate(0x142600210))();
++}
++
++// A recorded list starts with a set bit (start of its first section)
++bool film_has_asset_list() {
++  return (*reinterpret_cast<const uint8_t *>(
++              game::relocate(DEMO_ASSET_LIST_DATA)) &
++          1) != 0;
++}
++
++bool cache_init_is_playing_stub() {
++  if (!demo_is_playing()) {
++    return false;
++  }
++
++  if (film_has_asset_list()) {
++    return true;
++  }
++
++  static bool logged{};
++  if (!logged) {
++    logged = true;
++    printf("[ Demo ] Film has no asset list (recorded as a client), "
++           "registering assets like a live client\n");
++  }
++  return false;
++}
++
++utils::hook::detour bg_cache_init_hook;
++
++void bg_cache_init_stub(const int instance) {
++  bg_cache_init_hook.invoke<void>(instance);
++
++  // The engine leaves registration open during playback only while this
++  // runs; its own reset is on the path we skipped
++  if (demo_is_playing() && !film_has_asset_list()) {
++    *reinterpret_cast<uint8_t *>(game::relocate(BG_CACHE_ALLOW_REGISTER)) = 0;
++  }
++}
+ } // namespace
+ 
+ struct component final : client_component {
+@@ -107,6 +163,17 @@ struct component final : client_component {
+     utils::hook::nop(0x1407F2055_g, 6);
+     utils::hook::nop(0x1407F205D_g, 2);
+ 
++    // Same for the attacker: nop `attacker >= com_maxclients`. Theater runs
++    // with com_maxclients 1, so every killer in slot 1+ showed as a suicide.
++    // (The `attacker < 0` branch stays: that is a real world/suicide death.)
++    utils::hook::nop(0x1407F20FE_g, 6);
++
++    // Films recorded as a client: build the asset table the way a live
++    // client does (the two "is a film playing?" checks in the cache setup)
++    utils::hook::call(0x1400AA649_g, cache_init_is_playing_stub);
++    utils::hook::call(0x1400A85E6_g, cache_init_is_playing_stub);
++    bg_cache_init_hook.create(0x1400A85A0_g, bg_cache_init_stub);
++
+     // demo_record / demo_stop live in demo_client_record
+     command::add("demo_dump", dump_game_image);
+   }
+diff --git a/src/client/component/download_overlay.cpp b/src/client/component/download_overlay.cpp
+index 15fd32a9..bad05e8a 100644
+--- a/src/client/component/download_overlay.cpp
++++ b/src/client/component/download_overlay.cpp
+@@ -363,6 +363,8 @@ LRESULT CALLBACK wndproc_stub(HWND hwnd, UINT msg, WPARAM wparam,
+   return CallWindowProcA(original_wndproc, hwnd, msg, wparam, lparam);
+ }
+ 
++std::atomic<ID3D11Device *> overlay_device{};
++
+ HRESULT __stdcall present_stub(IDXGISwapChain *swap_chain, UINT sync_interval,
+                                UINT flags) {
+   if (!imgui_initialized) {
+@@ -386,6 +388,7 @@ HRESULT __stdcall present_stub(IDXGISwapChain *swap_chain, UINT sync_interval,
+ 
+       ImGui_ImplWin32_Init(desc.OutputWindow);
+       ImGui_ImplDX11_Init(device, context);
++      overlay_device = device;
+ 
+       // Hook WndProc so mouse/keyboard reach ImGui (needed for the Stop button)
+       game_hwnd = desc.OutputWindow;
+@@ -569,6 +572,8 @@ struct component final : client_component {
+     }
+   }
+ };
++
++ID3D11Device *get_device() { return overlay_device; }
+ } // namespace download_overlay
+ 
+ REGISTER_COMPONENT(download_overlay::component)
+diff --git a/src/client/component/download_overlay.hpp b/src/client/component/download_overlay.hpp
+index 9604f909..774cacdd 100644
+--- a/src/client/component/download_overlay.hpp
++++ b/src/client/component/download_overlay.hpp
+@@ -38,4 +38,7 @@ using input_filter =
+ void add_input_filter(input_filter filter);
+ // Feeds a window message to ImGui; returns true if ImGui used it
+ bool forward_to_imgui(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
++// The game's D3D11 device once the overlay is set up (for textures drawn in
++// it), nullptr before that
++struct ID3D11Device *get_device();
+ } // namespace download_overlay
+diff --git a/src/client/component/script.cpp b/src/client/component/script.cpp
+index e22ec86e..12a9dc41 100644
+--- a/src/client/component/script.cpp
++++ b/src/client/component/script.cpp
+@@ -606,7 +606,21 @@ void load_script_file(std::string &data,
+   }
+ }
+ 
++// Set while custom scripts are loaded for a Theater film: only the film
++// helper script may run there (see begin_load_scripts_stub)
++bool film_helper_pass{};
++
++bool is_film_helper_script(const std::string &name) {
++  const auto slash = name.find_last_of("/\\");
++  const auto leaf = slash == std::string::npos ? name : name.substr(slash + 1);
++  return utils::string::to_lower(leaf) == "mvm_corpse.csc";
++}
++
+ void execute_loaded_script(const std::string &name) {
++  if (film_helper_pass && !is_film_helper_script(name)) {
++    return;
++  }
++
+   const bool is_csc = utils::string::ends_with(name, ".csc");
+   const bool is_gsc = utils::string::ends_with(name, ".gsc");
+   if ((!is_gsc && !is_csc) || (is_csc && !is_client()) ||
+@@ -1258,6 +1272,26 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
+ 
+   scr::Scr_BeginLoadScripts(inst, user);
+ 
++  // Theater films: the client scripts of a film come from the film itself,
++  // so custom scripts are not loaded for it. The one exception is the film
++  // helper (mvm_corpse.csc: held weapons on bodies), which only exists for
++  // films. Run the loader once more for it alone.
++  if (inst == SCRIPTINSTANCE_CLIENT && is_legacy_client() &&
++      reinterpret_cast<bool (*)()>(game::relocate(0x142600210))() &&
++      !film_helper_pass) {
++    film_helper_pass = true;
++    try {
++      load_scripts();
++      print_script_log("Film: helper script pass done");
++    } catch (const std::exception &e) {
++      print_script_log(
++          utils::string::va("Film: helper script pass failed: %s", e.what()));
++    } catch (...) {
++      print_script_log("Film: helper script pass failed");
++    }
++    film_helper_pass = false;
++  }
++
+   if (com::Com_IsInGame() && !com::Com_IsRunningUILevel()) {
+     load_scripts();
+ 
+diff --git a/src/client/game/demonware/services/bdPooledStorage.cpp b/src/client/game/demonware/services/bdPooledStorage.cpp
+index bc9ac28d..735cea52 100644
+--- a/src/client/game/demonware/services/bdPooledStorage.cpp
++++ b/src/client/game/demonware/services/bdPooledStorage.cpp
+@@ -5,6 +5,8 @@
+ #include <component/workshop.hpp>
+ #include <utils/io.hpp>
+ 
++#include <map>
++
+ namespace demonware {
+ namespace {
+ std::mutex upload_mutex;
+@@ -81,9 +83,32 @@ void film_log(const std::string &line) {
+ 
+ namespace {
+ std::atomic<bool> client_recording{};
+-std::string client_film; // DW thread only
++std::atomic<bool> film_saving{};
++
++// Client films by file name, from the start of their upload until it is done
++std::mutex film_info_mutex;
++client_film_info latest_film_info;
++std::string latest_film;
++std::map<std::string, client_film_info> film_infos;
++
++template <typename T>
++void put(std::string &blob, const size_t offset, const T value) {
++  if (blob.size() >= offset + sizeof(T)) {
++    memcpy(blob.data() + offset, &value, sizeof(T));
++  }
++}
+ 
+-void write_template_summary(const std::string &film) {
++void put_text(std::string &blob, const size_t offset, const size_t size,
++              std::string text) {
++  if (blob.size() >= offset + size) {
++    text.resize(size - 1);
++    memcpy(blob.data() + offset, text.data(), size - 1);
++    blob[offset + size - 1] = 0;
++  }
++}
++
++void write_template_summary(const std::string &film,
++                            const client_film_info &info) {
+   const std::filesystem::path folder = demo_folder;
+   const auto film_path = folder / film;
+   if (std::filesystem::exists(film_path.string() + ".summary")) {
+@@ -122,38 +147,97 @@ void write_template_summary(const std::string &film) {
+ 
+   std::filesystem::copy_file(template_film.string() + ".summary",
+                              film_path.string() + ".summary", ec);
+-  std::filesystem::copy_file(template_film.string() + ".tags",
+-                             film_path.string() + ".tags", ec);
+ 
+-  // Thumbnail: keep the template's data, but title it after this film
+-  auto thumbnail = utils::io::read_file(template_film.string() + ".thumbnail");
++  // Tags: [count] then {key, value} pairs. Key 2 is the map's unique id,
++  // which is what Theater picks the tile's map picture by.
++  constexpr uint64_t TAG_MAP_ID = 2;
++  auto tags = utils::io::read_file(template_film.string() + ".tags");
++  if (info.map_id != 0 && tags.size() >= sizeof(uint32_t)) {
++    uint32_t count{};
++    memcpy(&count, tags.data(), sizeof(count));
++    for (uint32_t i = 0; i < count; ++i) {
++      const size_t offset = sizeof(uint32_t) + i * 2 * sizeof(uint64_t);
++      if (tags.size() < offset + 2 * sizeof(uint64_t)) {
++        break;
++      }
++
++      uint64_t key{};
++      memcpy(&key, tags.data() + offset, sizeof(key));
++      if (key == TAG_MAP_ID) {
++        put(tags, offset + sizeof(uint64_t),
++            static_cast<uint64_t>(info.map_id));
++      }
++    }
++  }
++  utils::io::write_file(film_path.string() + ".tags", tags);
++
++  // Thumbnail (the tile's text): title, length, gametype and date
+   constexpr size_t TITLE_OFFSET = 2;
+   constexpr size_t TITLE_SIZE = 0x40;
+-  if (thumbnail.size() >= TITLE_OFFSET + TITLE_SIZE) {
+-    auto title = "Client: " + film.substr(0, film.rfind('.'));
+-    title.resize(TITLE_SIZE - 1);
+-    memcpy(thumbnail.data() + TITLE_OFFSET, title.data(), TITLE_SIZE - 1);
+-    thumbnail[TITLE_OFFSET + TITLE_SIZE - 1] = 0;
++  constexpr size_t DURATION_OFFSET = 0x42;    // uint32, milliseconds
++  constexpr size_t CREATE_TIME_OFFSET = 0x5e; // uint32, unix seconds
++  constexpr size_t GAMETYPE_OFFSET = 0x6a;
++  constexpr size_t GAMETYPE_SIZE = 0x20;
++  auto thumbnail = utils::io::read_file(template_film.string() + ".thumbnail");
++  put_text(thumbnail, TITLE_OFFSET, TITLE_SIZE,
++           info.title.empty() ? film.substr(0, film.rfind('.')) : info.title);
++  if (info.duration_ms) {
++    put(thumbnail, DURATION_OFFSET, info.duration_ms);
++  }
++  if (info.create_time) {
++    put(thumbnail, CREATE_TIME_OFFSET, info.create_time);
++  }
++  if (!info.gametype_name.empty()) {
++    put_text(thumbnail, GAMETYPE_OFFSET, GAMETYPE_SIZE, info.gametype_name);
+   }
+   utils::io::write_file(film_path.string() + ".thumbnail", thumbnail);
+ 
+-  film_log("client film " + film + " got template summary from " +
+-           template_film.filename().string());
++  film_log(std::format("client film {}: summary from {}, title '{}', map id "
++                       "{}, length {} ms",
++                       film, template_film.filename().string(), info.title,
++                       info.map_id, info.duration_ms));
+ }
+ } // namespace
+ 
+-void set_client_recording(const bool active) { client_recording = active; }
++bool client_film_saving() { return film_saving; }
+ 
+-void on_film_uploaded(const std::string &path) {
+-  if (client_film.empty()) {
+-    return;
++void set_client_recording(const bool active) {
++  client_recording = active;
++  film_saving = active;
++  if (active) {
++    // A new film: its name is known once its upload starts
++    std::lock_guard _(film_info_mutex);
++    latest_film.clear();
+   }
++}
+ 
++void set_client_film_info(const client_film_info &info) {
++  std::lock_guard _(film_info_mutex);
++  latest_film_info = info;
++  if (!latest_film.empty()) {
++    film_infos[latest_film] = info;
++  }
++}
++
++void on_film_uploaded(const std::string &path) {
+   const auto name = std::filesystem::path(path).filename().string();
+-  if (name == client_film) {
+-    write_template_summary(client_film);
+-    client_film.clear();
++
++  client_film_info info;
++  {
++    std::lock_guard _(film_info_mutex);
++    const auto it = film_infos.find(name);
++    if (it == film_infos.end()) {
++      return;
++    }
++
++    info = it->second;
++    film_infos.erase(it);
++    if (latest_film == name) {
++      latest_film.clear();
++    }
+   }
++
++  write_template_summary(name, info);
+ }
+ 
+ std::vector<std::string> scan_folder_demo() {
+@@ -236,7 +320,11 @@ void bdPooledStorage::_preUpload(service_server *server,
+   film_log("bdPooledStorage::_preUpload " + filename);
+   // One upload per recording: consume the flag so a later hosted match's
+   // film isn't mistaken for a client film
+-  client_film = client_recording.exchange(false) ? filename : std::string{};
++  if (client_recording.exchange(false)) {
++    std::lock_guard _(film_info_mutex);
++    latest_film = filename;
++    film_infos[filename] = latest_film_info;
++  }
+ 
+   auto result = std::make_unique<bdURL>();
+   result->url = std::format("{}/cloud/{}/{}", url_server, demo_folder, filename);
+@@ -258,6 +346,7 @@ void bdPooledStorage::_preUpload(service_server *server,
+ void bdPooledStorage::_postUploadFile(service_server *server,
+                                       byte_buffer *buffer) const {
+   film_log("bdPooledStorage::_postUploadFile");
++  film_saving = false;
+   uint64_t file_id{};
+   buffer->read_uint64(&file_id);
+ 
+diff --git a/src/client/game/demonware/services/bdPooledStorage.hpp b/src/client/game/demonware/services/bdPooledStorage.hpp
+index c5b1fc7e..8ea1af23 100644
+--- a/src/client/game/demonware/services/bdPooledStorage.hpp
++++ b/src/client/game/demonware/services/bdPooledStorage.hpp
+@@ -36,5 +36,22 @@ void film_log(const std::string &line);
+ // real one, such films get a copy of the newest existing summary so they show
+ // up in Theater.
+ void set_client_recording(bool active);
++
++// What Theater shows on a client film's tile. The summary itself is still a
++// copy, but the map, title, length and date are the film's own.
++struct client_film_info {
++  int map_id{};              // the map's unique id (tag 2); 0 = unknown
++  std::string title;         // "Team Deathmatch on Rift"
++  std::string gametype_name; // "Team Deathmatch"
++  uint32_t duration_ms{};
++  uint32_t create_time{};    // unix seconds
++};
++
++// Describes the client film being recorded; call again when it changes (the
++// length is only known when recording stops)
++void set_client_film_info(const client_film_info &info);
++
++// True from the start of a client film until the game has finished saving it
++bool client_film_saving();
+ void on_film_uploaded(const std::string &path);
+ } // namespace demonware
+diff --git a/src/client/main.cpp b/src/client/main.cpp
+index f5bf5ecd..70e88ad8 100644
+--- a/src/client/main.cpp
++++ b/src/client/main.cpp
+@@ -303,6 +303,12 @@ std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
+ 
+ bool prompt_to_install_client_patch(const client_binary_state state,
+                                     const bool close_running_game) {
++  // This install runs a BlackOps3.exe the client calls incompatible but which
++  // works; never ask on launch. "-patchprompt" brings the question back.
++  if (!utils::flags::has_flag("patchprompt")) {
++    return false;
++  }
++
+   return !game::is_headless() &&
+          MessageBoxA(
+              nullptr,
+diff --git a/src/client/resources/botmod/botmod.gsc b/src/client/resources/botmod/botmod.gsc
+index 8cf9c3dd..f927575f 100644
+--- a/src/client/resources/botmod/botmod.gsc
++++ b/src/client/resources/botmod/botmod.gsc
+@@ -18,6 +18,10 @@ function autoexec botmod_init()
+ 	setdvar("bot_maxaxis", 0);
+ 	setdvar("bot_maxfree", 0);
+ 
++	// Hardest bots (get_bot_settings in _bot.gsc: 3 = bot_mp_veteran), so
++	// they move and fight hard once unfrozen
++	setdvar("bot_difficulty", 3);
++
+ 	// Weapons don't drop on death, so there is never a gun on the floor for a
+ 	// bot to pick up into the wrong slot
+ 	level.disableweapondrop = 1;
+@@ -32,6 +36,7 @@ function autoexec botmod_init()
+ 	addcommand("botmod_applyme", ::cmd_apply_me);
+ 	addcommand("botmod_giveme", ::cmd_give_me);
+ 	addcommand("botmod_camome", ::cmd_camo_me);
++	addcommand("botmod_unfreeze", ::cmd_unfreeze);
+ 
+ 	level thread watch_players();
+ 	level thread write_character_catalog();
+@@ -182,6 +187,21 @@ function cmd_remove(args)
+ 	level.botmod_bots = [];
+ }
+ 
++// One-shot: every living bot is let go for the rest of its life. After dying
++// it respawns on its spot frozen again (bot_life), like a new bot.
++function cmd_unfreeze(args)
++{
++	trace("cmd_unfreeze");
++	foreach (bot in get_bots())
++	{
++		if (!isalive(bot))
++			continue;
++
++		bot notify("botmod_unfreeze");
++		bot freezecontrols(0);
++	}
++}
++
+ // Gives every existing bot the menu's current weapon, camo and specialist
+ function cmd_refresh(args)
+ {
+@@ -325,6 +345,7 @@ function hold_pose()
+ 	self endon("disconnect");
+ 	self endon("death");
+ 	self endon("spawned_player");
++	self endon("botmod_unfreeze");
+ 
+ 	moved_logged = false;
+ 	for (;;)
+diff --git a/src/client/component/botmod/botmod_outfits.hpp b/src/client/component/botmod/botmod_outfits.hpp
+new file mode 100644
+index 00000000..47a0ac85
+--- /dev/null
++++ b/src/client/component/botmod/botmod_outfits.hpp
+@@ -0,0 +1,78 @@
++#pragma once
++#include <algorithm>
++#include <cstdio>
++#include <istream>
++#include <string>
++#include <vector>
++
++// Names and counts for the bot menu's Specialist page. The data file
++// (MVM/Theater/outfit-previews/catalog.txt) was read from the game itself:
++// outfit N is body style N with helmet style N, which the game lists under one name.
++namespace botmod::outfits {
++struct specialist {
++    int id=-1;
++    std::string name;
++    std::vector<std::string> names; // by outfit index; empty = the game has no name for it
++};
++struct catalog {
++    std::vector<specialist> specialists;
++    const specialist* find(int id) const {
++        for(const auto& item:specialists)if(item.id==id)return &item;
++        return nullptr;
++    }
++    // Lines: "S|id|name" and "O|id|index|name". Anything else is ignored.
++    static catalog parse(std::istream& in) {
++        catalog result;std::string line;
++        while(std::getline(in,line)) {
++            if(!line.empty() && line.back()=='\r')line.pop_back();
++            std::vector<std::string> part;size_t from=0;
++            for(;;){auto bar=line.find('|',from);part.push_back(line.substr(from,bar-from));if(bar==std::string::npos)break;from=bar+1;}
++            auto number=[](const std::string& text,int& out){
++                if(text.empty() || text.size()>4)return false;
++                int value=0;for(char c:text){if(c<'0' || c>'9')return false;value=value*10+(c-'0');}
++                out=value;return true;
++            };
++            int id=0,index=0;
++            if(part.size()==3 && part[0]=="S" && number(part[1],id)) {
++                if(!result.find(id))result.specialists.push_back({id,part[2],{}});
++            } else if(part.size()==4 && part[0]=="O" && number(part[1],id) && number(part[2],index) && index<256) {
++                for(auto& item:result.specialists)if(item.id==id) {
++                    if(int(item.names.size())<=index)item.names.resize(size_t(index)+1);
++                    item.names[size_t(index)]=part[3];
++                }
++            }
++        }
++        return result;
++    }
++};
++// What the menu shows for one entry: the game's name, or a plain numbered fallback.
++inline std::string label(const specialist* who,int index,const char* kind) {
++    if(who && index>=0 && index<int(who->names.size()) && !who->names[size_t(index)].empty())return who->names[size_t(index)];
++    return std::string(kind)+" "+std::to_string(index+1);
++}
++// How many entries a list has. The game's own count (known once a match has been loaded) wins
++// for the separate lists; the catalog fills in before that.
++inline int count(const specialist* who,int game_count) {
++    if(game_count>0)return std::min(game_count,256);
++    return who?int(who->names.size()):0;
++}
++inline int outfit_count(const specialist* who,int game_bodies,int game_heads) {
++    return std::max(count(who,game_bodies),count(who,game_heads));
++}
++inline std::string image_name(int specialist_id,int index,bool head) {
++    char text[32];std::snprintf(text,sizeof(text),"h%d_%02d%s.jpg",specialist_id,index,head?"_head":"");
++    return text;
++}
++// A body and a head from different outfits are shown as the head close-up above the body
++// picture cut off at the shoulders. Returns the two rectangles inside a box of the given size.
++struct rect {float x0=0,y0=0,x1=0,y1=0;};
++struct mixed_layout {rect head,body;float body_v0=0;};
++inline mixed_layout mix(float width,float height) {
++    constexpr float picture_aspect=399.f/360.f,cut=.29f,head_share=.40f;
++    float w=width,head=w*head_share,body=w*picture_aspect*(1-cut);
++    float scale=std::min(1.f,height/(head+body));
++    w*=scale;head*=scale;body*=scale;
++    float left=(width-w)/2,head_left=(width-head)/2;
++    return {{head_left,0,head_left+head,head},{left,head,left+w,head+body},cut};
++}
++}
